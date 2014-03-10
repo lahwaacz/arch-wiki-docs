@@ -160,7 +160,5 @@ download_css()
 
 wiki = MediaWiki('https://wiki.archlinux.org/api.php')
 print_namespaces()
-#for ns in ["0", "4", "12", "14"]:
-#    process_namespace(ns)
-for ns in ["4", "12"]:
+for ns in ["0", "4", "12", "14"]:
     process_namespace(ns)
