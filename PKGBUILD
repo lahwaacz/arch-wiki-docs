@@ -7,7 +7,7 @@ pkgver=2014.03.10
 pkgrel=1
 arch=('any')
 url="https://github.com/lahwaacz/arch-wiki-docs"
-license=('LGPL')
+license=('FDL')
 options=('!strip')
 # dump_html does not require running the script, the pages are already processed
 #makedepends=('git' 'python' 'python-simplemediawiki-git')
