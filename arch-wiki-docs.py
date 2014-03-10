@@ -34,9 +34,9 @@ css_links = {
 }
 
 css_replace = {
-    "https://wiki.archlinux.org/load.php?debug=false&amp;lang=en&amp;modules=mediawiki.legacy.commonPrint%2Cshared%7Cskins.archlinux&amp;only=styles&amp;skin=archlinux&amp;*": "./ArchWikiOffline.css",
-    "/skins/archlinux/IE60Fixes.css?303": "./IE60Fixes.css",
-    "/skins/archlinux/IE70Fixes.css?303": "./IE70Fixes.css",
+    "https://wiki.archlinux.org/load.php?debug=false&amp;lang=en&amp;modules=mediawiki.legacy.commonPrint%2Cshared%7Cskins.archlinux&amp;only=styles&amp;skin=archlinux&amp;*": "ArchWikiOffline.css",
+    "/skins/archlinux/IE60Fixes.css?303": "IE60Fixes.css",
+    "/skins/archlinux/IE70Fixes.css?303": "IE70Fixes.css",
 }
 
 def query_continue(query):
@@ -73,9 +73,10 @@ def print_namespaces():
 def sanitize_links(text):
     return re.sub(links_re, "./\\g<2>.html", text)
 
-def update_css_links(text):
+def update_css_links(text, css_path):
+    # 'css_path' is directory path of the CSS relative to the resulting HTML file
     for a, b in css_replace.items():
-        text = text.replace(a, b)
+        text = text.replace(a, os.path.join(css_path, b))
     return text
 
 def save_page(title, head, text, catlinks):
@@ -96,7 +97,7 @@ def save_page(title, head, text, catlinks):
     f = open(os.path.join(output_directory, title_linksafe + ".html"), "w")
 
     # sanitize header for offline use (replace stylesheets, remove scripts)
-    head = update_css_links(head)
+    head = update_css_links(head, os.path.relpath(output_directory, directory))
     head = re.sub("^(.*)(https?://)(.*)$", "", head, flags=re.MULTILINE)
     f.write(head)
 
@@ -163,6 +164,5 @@ download_css()
 
 wiki = MediaWiki('https://wiki.archlinux.org/api.php')
 print_namespaces()
-#for ns in ["0", "4", "12", "14"]:
-for ns in ["4", "12", "14"]:
+for ns in ["0", "4", "12", "14"]:
     process_namespace(ns)
