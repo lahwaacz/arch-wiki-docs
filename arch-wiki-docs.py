@@ -79,10 +79,13 @@ def update_css_links(text):
     return text
 
 def save_page(title, head, text, catlinks):
+    # MediaWiki treats uses '_' in links instead of ' '
+    title_linksafe = title.replace(" ", "_")
+
     # subpages need to be handled separately (especially the "/dev/shm" title anomally)
-    if title.startswith("/"):
-        title = title[1:]
-    subpage_parts = title.split("/")
+    if title_linksafe.startswith("/"):
+        title_linksafe = title_linksafe[1:]
+    subpage_parts = title_linksafe.split("/")
     directory = os.path.join(output_directory, *subpage_parts[:-1])
 
     try:
@@ -90,7 +93,7 @@ def save_page(title, head, text, catlinks):
     except FileExistsError:
         pass
 
-    f = open(os.path.join(output_directory, title + ".html"), "w")
+    f = open(os.path.join(output_directory, title_linksafe + ".html"), "w")
 
     # sanitize header for offline use (replace stylesheets, remove scripts)
     head = update_css_links(head)
@@ -160,5 +163,6 @@ download_css()
 
 wiki = MediaWiki('https://wiki.archlinux.org/api.php')
 print_namespaces()
-for ns in ["0", "4", "12", "14"]:
+#for ns in ["0", "4", "12", "14"]:
+for ns in ["4", "12", "14"]:
     process_namespace(ns)
