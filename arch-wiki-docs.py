@@ -1,11 +1,5 @@
 #! /usr/bin/env python
 
-# TODO: categories browsing
-# TODO: handle redirects (create symlinks?)
-# TODO: write simple index.html (list available Main pages + Table of Contents)
-# TODO: test parser options: preview, disablepp
-# TODO: hide "[edit]" links next to headings
-
 import os
 import sys
 import re
