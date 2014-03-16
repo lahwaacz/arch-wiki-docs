@@ -19,7 +19,20 @@ query_allpages = {
 }
 #query_allpages.update({"continue": "-||info", "apcontinue": "Applications"})
 
-links_re = re.compile("((?<=href=\")\\/index\\.php\\/)([^\\s#]+(?=[\"#]))")
+query_allimages = {
+    "action": "query",
+    "list": "allimages",
+    "aiprop": "url|timestamp",
+    "aimaxsize": "10000",
+    "continue": "",
+}
+
+# matches all internal wiki links, will be replaced with local relative link
+re_internal_links = re.compile("((?<=href=\")\\/index\\.php\\/)([^\\s#]+(?=[\"#]))")
+# matches all local relative links except the 'File' namespace, these will be given '.html' extension
+re_links_suffix = re.compile("(?<=href=\"\\.\\/)(?!File:)[^\\s#]+(?=[\"#])(?!\\.html)")
+# matches links to images ('src' attribute of the <img> tags)
+re_images_links = re.compile("((?<=src=\")\\/images\\/([\\S]+\\/)+)([^\\s#]+(?=\"))")
 
 css_links = {
     "https://wiki.archlinux.org/load.php?debug=false&lang=en&modules=mediawiki.legacy.commonPrint%2Cshared%7Cskins.archlinux&only=styles&skin=archlinux&*": "ArchWikiOffline.css",
@@ -54,7 +67,10 @@ def print_namespaces():
         print("  %2d -- %s" % (ns, nsmap[ns]))
 
 def sanitize_links(text):
-    return re.sub(links_re, "./\\g<2>.html", text)
+    text = re.sub(re_internal_links, "./\\g<2>", text)
+    text = re.sub(re_links_suffix, "\\g<0>.html", text)
+    text = re.sub(re_images_links, "./File:\\g<3>", text)
+    return text
 
 def update_css_links(text, css_path):
     # 'css_path' is directory path of the CSS relative to the resulting HTML file
@@ -136,16 +152,29 @@ def process_namespace(namespace):
 def download_css():
     print("Downloading CSS...")
     for link, dest in css_links.items():
+        print(dest)
         urllib.request.urlretrieve(link, os.path.join(output_directory, dest))
+
+def download_images():
+    print("Downloading images...")
+    query = query_allimages.copy()
+    for images_snippet in query_continue(query):
+        for image in images_snippet["allimages"]:
+            title = image["title"]
+            print(title)
+            url = image["url"]
+            urllib.request.urlretrieve(url, os.path.join(output_directory, title))
     
 
 # ensure output directory always exists
 if not os.path.exists(output_directory):
     os.mkdir(output_directory)
 
-download_css()
 
 wiki = MediaWiki("https://wiki.archlinux.org/api.php")
 print_namespaces()
 for ns in ["0", "4", "12", "14"]:
     process_namespace(ns)
+
+download_css()
+download_images()
