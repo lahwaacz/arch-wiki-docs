@@ -36,33 +36,22 @@ css_replace = {
 def query_continue(query):
     while True:
         result = wiki.call(query)
-        if 'error' in result:
-            raise Exception(result['error'])
-        if 'warnings' in result:
-            print(result['warnings'])
-        if 'query' in result:
-            yield result['query']
-        if 'continue' not in result:
+        if "error" in result:
+            raise Exception(result["error"])
+        if "warnings" in result:
+            print(result["warnings"])
+        if "query" in result:
+            yield result["query"]
+        if "continue" not in result:
             break
         query.update(result["continue"])
 
-def get_namespaces_map():
-    result = wiki.call({"action": "query", "meta": "siteinfo", "siprop": "namespaces"})
-    if "error" in result:
-        raise Exception(result["error"])
-    if "warnings" in result:
-        print(result["warnings"])
-    return result["query"]["namespaces"]
-
 def print_namespaces():
-    nsmap = get_namespaces_map()
+    nsmap = wiki.namespaces()
+    nsmap[0] = "Main"   # force main namespace to have name instead of empty string
     print("Available namespaces:")
-    for ns in sorted(nsmap.keys(), key=int):
-        if "canonical" in nsmap[ns]:
-            name = nsmap[ns]["canonical"]
-        else:
-            name = "Main"
-        print("  %2d -- %s" % (int(nsmap[ns]["id"]), name))
+    for ns in sorted(nsmap.keys()):
+        print("  %2d -- %s" % (ns, nsmap[ns]))
 
 def sanitize_links(text):
     return re.sub(links_re, "./\\g<2>.html", text)
@@ -156,7 +145,7 @@ if not os.path.exists(output_directory):
 
 download_css()
 
-wiki = MediaWiki('https://wiki.archlinux.org/api.php')
+wiki = MediaWiki("https://wiki.archlinux.org/api.php")
 print_namespaces()
 for ns in ["0", "4", "12", "14"]:
     process_namespace(ns)
