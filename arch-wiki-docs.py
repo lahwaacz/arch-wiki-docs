@@ -4,6 +4,7 @@ import os
 import sys
 import re
 import urllib.request
+import datetime
 
 from simplemediawiki import MediaWiki
 
@@ -80,22 +81,42 @@ def update_css_links(text, css_path):
         text = text.replace(a, os.path.join(css_path, b))
     return text
 
-def save_page(title, head, text, catlinks):
+# return file name where the given page should be stored
+def get_local_filename(title):
     # MediaWiki treats uses '_' in links instead of ' '
-    title_linksafe = title.replace(" ", "_")
+    title = title.replace(" ", "_")
 
-    # subpages need to be handled separately (especially the "/dev/shm" title anomally)
-    if title_linksafe.startswith("/"):
-        title_linksafe = title_linksafe[1:]
-    subpage_parts = title_linksafe.split("/")
-    directory = os.path.join(output_directory, *subpage_parts[:-1])
+    # handle anomalous titles beginning with '/' (e.g. "/dev/shm")
+    if title.startswith("/"):
+        title = title[1:]
+
+    # pages from File namespace already have an extension
+    if not title.startswith("File:"):
+        title += ".html"
+
+    return os.path.join(output_directory, title)
+
+# determine if it is necessary to download a page
+# TODO: handle incompatible updates to this script
+def needs_update(title, timestamp):
+    fname = get_local_filename(title)
+    if not os.path.exists(fname):
+        return True
+    local = datetime.datetime.fromtimestamp(os.path.getmtime(fname))
+    if local < timestamp:
+        return True
+    return False
+
+def save_page(title, head, text, catlinks):
+    fname = get_local_filename(title)
+    directory = os.path.split(fname)[0]
 
     try:
         os.makedirs(directory)
     except FileExistsError:
         pass
 
-    f = open(os.path.join(output_directory, title_linksafe + ".html"), "w")
+    f = open(fname, "w")
 
     # sanitize header for offline use (replace stylesheets, remove scripts)
     head = update_css_links(head, os.path.relpath(output_directory, directory))
@@ -142,19 +163,23 @@ def process_namespace(namespace):
     for pages_snippet in query_continue(query):
         for page in pages_snippet["pages"].values():
             title = page["title"]
-            print(title)
-            pageid = page["pageid"]
-            contents = wiki.call({"action": "parse", "pageid": pageid, "prop": "text|headhtml|categorieshtml|links"})
-            head = contents["parse"]["headhtml"]["*"]
-            links = contents["parse"]["links"]
-            text = contents["parse"]["text"]["*"]
-            catlinks = contents["parse"]["categorieshtml"]["*"]
-            save_page(title, head, text, catlinks)
+            timestamp = wiki.parse_date(page["touched"])
+            if needs_update(title, timestamp):
+                print("  [downloading] %s" % title)
+                pageid = page["pageid"]
+                contents = wiki.call({"action": "parse", "pageid": pageid, "prop": "text|headhtml|categorieshtml|links"})
+                head = contents["parse"]["headhtml"]["*"]
+                links = contents["parse"]["links"]
+                text = contents["parse"]["text"]["*"]
+                catlinks = contents["parse"]["categorieshtml"]["*"]
+                save_page(title, head, text, catlinks)
+            else:
+                print("  [up-to-date]  %s" % title)
 
 def download_css():
     print("Downloading CSS...")
     for link, dest in css_links.items():
-        print(dest)
+        print(" ", dest)
         urllib.request.urlretrieve(link, os.path.join(output_directory, dest))
 
 def download_images():
@@ -163,9 +188,13 @@ def download_images():
     for images_snippet in query_continue(query):
         for image in images_snippet["allimages"]:
             title = image["title"]
-            print(title)
-            url = image["url"]
-            urllib.request.urlretrieve(url, os.path.join(output_directory, title))
+            timestamp = wiki.parse_date(image["timestamp"])
+            if needs_update(title, timestamp):
+                print("  [downloading] %s" % title)
+                url = image["url"]
+                urllib.request.urlretrieve(url, os.path.join(output_directory, title))
+            else:
+                print("  [up-to-date]  %s" % title)
     
 
 # ensure output directory always exists
@@ -178,5 +207,5 @@ print_namespaces()
 for ns in ["0", "4", "12", "14"]:
     process_namespace(ns)
 
-download_css()
 download_images()
+download_css()
