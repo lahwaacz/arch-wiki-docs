@@ -11,10 +11,10 @@ output_directory = "wiki"
 
 query_allpages = {
     "action": "query",
-    "list": "allpages",
-    "aplimit": "500",
-    "apfilterredir": "nonredirects",
-    "apnamespace": "0",
+    "generator": "allpages",
+    "gaplimit": "500",
+    "gapfilterredir": "nonredirects",
+    "gapnamespace": "0",
     "prop": "info",
     "continue": "",
 }
@@ -138,9 +138,9 @@ def process_namespace(namespace):
         return
 
     query = query_allpages.copy()
-    query["apnamespace"] = namespace
+    query["gapnamespace"] = namespace
     for pages_snippet in query_continue(query):
-        for page in pages_snippet["allpages"]:
+        for page in pages_snippet["pages"].values():
             title = page["title"]
             print(title)
             pageid = page["pageid"]
