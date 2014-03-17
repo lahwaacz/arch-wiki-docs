@@ -12,6 +12,7 @@ output_directory = "wiki"
 query_allpages = {
     "action": "query",
     "list": "allpages",
+    "aplimit": "500",
     "apfilterredir": "nonredirects",
     "apnamespace": "0",
     "prop": "info",
@@ -22,6 +23,7 @@ query_allpages = {
 query_allimages = {
     "action": "query",
     "list": "allimages",
+    "ailimit": "500",
     "aiprop": "url|timestamp",
     "aimaxsize": "10000",
     "continue": "",
