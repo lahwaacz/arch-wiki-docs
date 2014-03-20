@@ -94,7 +94,12 @@ def process_namespace(namespace):
             timestamp = wiki.parse_date(page["touched"])
             if needs_update(title, timestamp):
                 print("  [downloading] %s" % title)
-                html = urllib.request.urlopen(page["fullurl"])
+                fullurl = page["fullurl"]
+
+                # FIXME: this is hack to avoid weird caching issues on ArchWiki
+                fullurl += "?printable=yes"
+
+                html = urllib.request.urlopen(fullurl)
                 awoo = ArchWikiOfflineOptimizer(html, get_local_filename(title), output_directory)
                 awoo.optimize()
             else:
