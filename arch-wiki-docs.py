@@ -8,6 +8,8 @@ import datetime
 
 from simplemediawiki import MediaWiki
 
+from ArchWikiOfflineOptimizer import ArchWikiOfflineOptimizer
+
 output_directory = "wiki"
 
 query_allpages = {
@@ -17,6 +19,7 @@ query_allpages = {
     "gapfilterredir": "nonredirects",
     "gapnamespace": "0",
     "prop": "info",
+    "inprop": "url",
     "continue": "",
 }
 #query_allpages.update({"continue": "-||info", "apcontinue": "Applications"})
@@ -30,23 +33,8 @@ query_allimages = {
     "continue": "",
 }
 
-# matches all internal wiki links, will be replaced with local relative link
-re_internal_links = re.compile("((?<=href=\")\\/index\\.php\\/)([^\\s#]+(?=[\"#]))")
-# matches all local relative links except the 'File' namespace, these will be given '.html' extension
-re_links_suffix = re.compile("(?<=href=\"\\.\\/)(?!File:)[^\\s#]+(?=[\"#])(?!\\.html)")
-# matches links to images ('src' attribute of the <img> tags)
-re_images_links = re.compile("((?<=src=\")\\/images\\/([\\S]+\\/)+)([^\\s#]+(?=\"))")
-
 css_links = {
     "https://wiki.archlinux.org/load.php?debug=false&lang=en&modules=mediawiki.legacy.commonPrint%2Cshared%7Cskins.archlinux&only=styles&skin=archlinux&*": "ArchWikiOffline.css",
-    "https://wiki.archlinux.org/skins/archlinux/IE60Fixes.css": "IE60Fixes.css",
-    "https://wiki.archlinux.org/skins/archlinux/IE70Fixes.css": "IE70Fixes.css",
-}
-
-css_replace = {
-    "https://wiki.archlinux.org/load.php?debug=false&amp;lang=en&amp;modules=mediawiki.legacy.commonPrint%2Cshared%7Cskins.archlinux&amp;only=styles&amp;skin=archlinux&amp;*": "ArchWikiOffline.css",
-    "/skins/archlinux/IE60Fixes.css?303": "IE60Fixes.css",
-    "/skins/archlinux/IE70Fixes.css?303": "IE70Fixes.css",
 }
 
 def query_continue(query):
@@ -68,18 +56,6 @@ def print_namespaces():
     print("Available namespaces:")
     for ns in sorted(nsmap.keys()):
         print("  %2d -- %s" % (ns, nsmap[ns]))
-
-def sanitize_links(text):
-    text = re.sub(re_internal_links, "./\\g<2>", text)
-    text = re.sub(re_links_suffix, "\\g<0>.html", text)
-    text = re.sub(re_images_links, "./File:\\g<3>", text)
-    return text
-
-def update_css_links(text, css_path):
-    # 'css_path' is directory path of the CSS relative to the resulting HTML file
-    for a, b in css_replace.items():
-        text = text.replace(a, os.path.join(css_path, b))
-    return text
 
 # return file name where the given page should be stored
 def get_local_filename(title):
@@ -107,56 +83,8 @@ def needs_update(title, timestamp):
         return True
     return False
 
-def save_page(title, head, text, catlinks):
-    fname = get_local_filename(title)
-    directory = os.path.split(fname)[0]
-
-    try:
-        os.makedirs(directory)
-    except FileExistsError:
-        pass
-
-    f = open(fname, "w")
-
-    # sanitize header for offline use (replace stylesheets, remove scripts)
-    head = update_css_links(head, os.path.relpath(output_directory, directory))
-    head = re.sub("^(.*)(https?://)(.*)$", "", head, flags=re.MULTILINE)
-    f.write(head)
-
-    # write div containers to "emulate" MediaWiki layout
-    # this is necessary if we want to use the same CSS as upstream
-    f.write("""<div id="globalWrapper" class="mw-body-primary" role="main" style="width: 100%%">
-<div id="content" class="mw-body-primary" role="main" style="margin: 2em">
-<a id="top"></a>
-<h1 lang="en" class="firstHeading" id="firstHeading"><span dir="auto">%s</span></h1>""" % title)
-    f.write("""<div id="bodyContent" class="mw-body">
-<div id="siteSub">From ArchWiki</div>
-<div id="contentSub"></div>
-<div id="jump-to-nav" class="mw-jump">Jump to: <a href="#column-one">navigation</a>, <a href="#searchInput">search</a></div>
-<div id="mw-content-text" class="mw-content-ltr">""")
-
-    f.write(sanitize_links(text))
-
-    # close <div id="mw-content-text">
-    f.write("</div>")
-
-    # write categories links
-    f.write(sanitize_links(catlinks))
-
-    # close divs, body, html
-    for i in range(6):
-        f.write("</div>\n")
-    f.write("</body>\n</html>")
-
-    f.close()
-
 def process_namespace(namespace):
     print("Processing namespace %s..." % namespace)
-
-    # TODO: categories cannot be handled the same as regular pages, because the wiki text is usually empty
-    if namespace == "14":   # categories
-        print("TODO: handling of categories is not done yet...")
-        return
 
     query = query_allpages.copy()
     query["gapnamespace"] = namespace
@@ -166,13 +94,9 @@ def process_namespace(namespace):
             timestamp = wiki.parse_date(page["touched"])
             if needs_update(title, timestamp):
                 print("  [downloading] %s" % title)
-                pageid = page["pageid"]
-                contents = wiki.call({"action": "parse", "pageid": pageid, "prop": "text|headhtml|categorieshtml|links"})
-                head = contents["parse"]["headhtml"]["*"]
-                links = contents["parse"]["links"]
-                text = contents["parse"]["text"]["*"]
-                catlinks = contents["parse"]["categorieshtml"]["*"]
-                save_page(title, head, text, catlinks)
+                html = urllib.request.urlopen(page["fullurl"])
+                awoo = ArchWikiOfflineOptimizer(html, get_local_filename(title), output_directory)
+                awoo.optimize()
             else:
                 print("  [up-to-date]  %s" % title)
 
