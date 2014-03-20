@@ -5,12 +5,11 @@ import sys
 import re
 import urllib.request
 import datetime
+import argparse
 
 from simplemediawiki import MediaWiki
 
 from ArchWikiOfflineOptimizer import ArchWikiOfflineOptimizer
-
-output_directory = "wiki"
 
 query_allpages = {
     "action": "query",
@@ -125,16 +124,22 @@ def download_images():
             else:
                 print("  [up-to-date]  %s" % title)
     
+if __name__ == "__main__":
+    aparser = argparse.ArgumentParser(description="Download pages from Arch Wiki and optimize them for offline browsing")
+    aparser.add_argument("--output-directory", type=str, required=True, help="where to store downloaded pages")
 
-# ensure output directory always exists
-if not os.path.exists(output_directory):
-    os.mkdir(output_directory)
+    args = aparser.parse_args()
+    output_directory = args.output_directory
+
+    # ensure output directory always exists
+    if not os.path.isdir(output_directory):
+        os.mkdir(output_directory)
 
 
-wiki = MediaWiki("https://wiki.archlinux.org/api.php")
-print_namespaces()
-for ns in ["0", "4", "12", "14"]:
-    process_namespace(ns)
+    wiki = MediaWiki("https://wiki.archlinux.org/api.php")
+    print_namespaces()
+    for ns in ["0", "4", "12", "14"]:
+        process_namespace(ns)
 
-download_images()
-download_css()
+    download_images()
+    download_css()
