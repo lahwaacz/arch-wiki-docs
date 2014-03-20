@@ -49,7 +49,7 @@ class ArchWikiOfflineOptimizer:
         """ remove elements useless in offline browsing
         """
 
-        for e in self.root.cssselect("#archnavbar, #column-one"):
+        for e in self.root.cssselect("#archnavbar, #column-one, span.mw-editsection"):
             e.getparent().remove(e)
 
         # strip comments (including IE 6/7 fixes, which are useless for an Arch package)
