@@ -72,13 +72,12 @@ def get_local_filename(title):
     return os.path.join(output_directory, title)
 
 # determine if it is necessary to download a page
-# TODO: handle incompatible updates to this script
 def needs_update(title, timestamp):
     fname = get_local_filename(title)
     if not os.path.exists(fname):
         return True
-    local = datetime.datetime.fromtimestamp(os.path.getmtime(fname))
-    if local < timestamp:
+    local = datetime.datetime.utcfromtimestamp(os.path.getmtime(fname))
+    if local < timestamp or local < epoch:
         return True
     return False
 
@@ -127,9 +126,15 @@ def download_images():
 if __name__ == "__main__":
     aparser = argparse.ArgumentParser(description="Download pages from Arch Wiki and optimize them for offline browsing")
     aparser.add_argument("--output-directory", type=str, required=True, help="where to store downloaded pages")
+    aparser.add_argument("--force", action="store_true", help="ignore timestamp, always download the page from the wiki")
 
     args = aparser.parse_args()
     output_directory = args.output_directory
+    if args.force:
+        epoch = datetime.datetime.utcnow()
+    else:
+        # this should be the date of the latest incompatible change
+        epoch = datetime.datetime(2014, 3, 20)
 
     # ensure output directory always exists
     if not os.path.isdir(output_directory):
