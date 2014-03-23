@@ -4,7 +4,7 @@ import os
 import lxml.etree
 import lxml.html
 
-class ArchWikiOfflineOptimizer:
+class ArchWikiOptimizer:
     def __init__(self, fin, fout, base_directory):
         """ @fin: input for lxml (either file name, file object, file-like object or url)
             @fout: output file name (must be absolute path)

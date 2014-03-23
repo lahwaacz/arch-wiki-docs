@@ -1,12 +1,12 @@
 #! /usr/bin/env python
 
-import os.path
+import os
 import datetime
 import urllib.request
 
 from simplemediawiki import MediaWiki
 
-from ArchWikiOfflineOptimizer import ArchWikiOfflineOptimizer
+from ArchWikiOptimizer import ArchWikiOptimizer
 
 class ArchWikiDownloader:
 
@@ -113,7 +113,7 @@ class ArchWikiDownloader:
                     fullurl += "?printable=yes"
 
                     html = urllib.request.urlopen(fullurl)
-                    awoo = ArchWikiOfflineOptimizer(html, self.get_local_filename(title), self.output_directory)
+                    awoo = ArchWikiOptimizer(html, self.get_local_filename(title), self.output_directory)
                     awoo.optimize()
                 else:
                     print("  [up-to-date]  %s" % title)
