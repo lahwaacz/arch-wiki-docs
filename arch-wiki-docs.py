@@ -1,8 +1,6 @@
 #! /usr/bin/env python
 
-import os
-import sys
-import re
+import os.path
 import urllib.request
 import datetime
 import argparse
@@ -21,7 +19,6 @@ query_allpages = {
     "inprop": "url",
     "continue": "",
 }
-#query_allpages.update({"continue": "-||info", "apcontinue": "Applications"})
 
 query_allimages = {
     "action": "query",

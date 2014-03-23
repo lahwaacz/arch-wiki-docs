@@ -29,6 +29,7 @@ class ArchWikiOfflineOptimizer:
         self.fix_layout()
         self.replace_css_links()
         self.update_links()
+        self.fix_footer()
 
         # ensure that target directory exists (necessary for subpages)
         try:
@@ -49,7 +50,7 @@ class ArchWikiOfflineOptimizer:
         """ remove elements useless in offline browsing
         """
 
-        for e in self.root.cssselect("#archnavbar, #column-one, span.mw-editsection"):
+        for e in self.root.cssselect("#archnavbar, #column-one, span.mw-editsection, #jump-to-nav, #siteSub"):
             e.getparent().remove(e)
 
         # strip comments (including IE 6/7 fixes, which are useless for an Arch package)
@@ -105,6 +106,20 @@ class ArchWikiOfflineOptimizer:
             if src and src.startswith("/images/"):
                 src = os.path.join(self.relbase, "File:" + os.path.split(src)[1])
                 i.set("src", src)
+
+    def fix_footer(self):
+        """ move content from 'div.printfooter' into item in '#f-list'
+            (normally 'div#printfooter' is given 'display:none' and is separated by
+            the categories list from the real footer)
+        """
+
+        printfooter = self.root.cssselect("div.printfooter")[0]
+        printfooter.attrib.pop("class")
+        printfooter.tag = "li"
+        f_list = self.root.cssselect("#f-list")[0]
+        f_list.insert(0, printfooter)
+        br = lxml.etree.Element("br")
+        f_list.insert(3, br)
 
 if __name__ == "__main__":
     awoo = ArchWikiOfflineOptimizer("testing_input.html", "./testing_output.html", "./wiki")
