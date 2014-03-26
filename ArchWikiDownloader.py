@@ -43,6 +43,9 @@ class ArchWikiDownloader:
         if not os.path.isdir(self.output_directory):
             os.mkdir(self.output_directory)
 
+        # list of valid files
+        self.files = []
+
     def query_continue(self, query):
         while True:
             result = self.wiki.call(query)
@@ -80,11 +83,10 @@ class ArchWikiDownloader:
 
         return os.path.join(self.output_directory, title)
 
-    def needs_update(self, title, timestamp):
+    def needs_update(self, fname, timestamp):
         """ determine if it is necessary to download a page
         """
 
-        fname = self.get_local_filename(title)
         if not os.path.exists(fname):
             return True
         local = datetime.datetime.utcfromtimestamp(os.path.getmtime(fname))
@@ -103,8 +105,10 @@ class ArchWikiDownloader:
         for pages_snippet in self.query_continue(query):
             for page in pages_snippet["pages"].values():
                 title = page["title"]
+                fname = self.get_local_filename(title)
+                self.files.append(fname)
                 timestamp = self.wiki.parse_date(page["touched"])
-                if self.needs_update(title, timestamp):
+                if self.needs_update(fname, timestamp):
                     print("  [downloading] %s" % title)
                     fullurl = page["fullurl"]
 
@@ -122,7 +126,9 @@ class ArchWikiDownloader:
         print("Downloading CSS...")
         for link, dest in self.css_links.items():
             print(" ", dest)
-            urllib.request.urlretrieve(link, os.path.join(self.output_directory, dest))
+            fname = os.path.join(self.output_directory, dest)
+            self.files.append(fname)
+            urllib.request.urlretrieve(link, fname)
 
     def download_images(self):
         print("Downloading images...")
@@ -130,10 +136,33 @@ class ArchWikiDownloader:
         for images_snippet in self.query_continue(query):
             for image in images_snippet["allimages"]:
                 title = image["title"]
+                fname = self.get_local_filename(title)
+                self.files.append(fname)
                 timestamp = self.wiki.parse_date(image["timestamp"])
-                if self.needs_update(title, timestamp):
+                if self.needs_update(fname, timestamp):
                     print("  [downloading] %s" % title)
                     url = image["url"]
-                    urllib.request.urlretrieve(url, os.path.join(self.output_directory, title))
+                    urllib.request.urlretrieve(url, fname)
                 else:
                     print("  [up-to-date]  %s" % title)
+
+    def clean_output_directory(self):
+        """ Walk output_directory and delete all files not found on the wiki.
+            Should be run _after_ downloading, otherwise all files will be deleted!
+        """
+
+        print("Deleting unwanted files (deleted/moved on the wiki)...")
+        valid_files = self.files.copy()
+
+        for path, dirs, files in os.walk(self.output_directory, topdown=False):
+            # handle files
+            for f in files:
+                fpath = os.path.join(path, f)
+                if fpath not in valid_files:
+                    print("  [deleting]    %s" % fpath)
+                    os.unlink(fpath)
+
+            # remove empty directories
+            if len(os.listdir(path)) == 0:
+                print("  [deleting]    %s/" % path)
+                os.rmdir(path)
