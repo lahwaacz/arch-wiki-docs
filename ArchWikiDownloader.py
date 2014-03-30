@@ -6,10 +6,7 @@ import urllib.request
 
 from simplemediawiki import MediaWiki
 
-from ArchWikiOptimizer import ArchWikiOptimizer
-
 class ArchWikiDownloader:
-
     query_allpages = {
         "action": "query",
         "generator": "allpages",
@@ -34,10 +31,20 @@ class ArchWikiDownloader:
         "https://wiki.archlinux.org/load.php?debug=false&lang=en&modules=mediawiki.legacy.commonPrint%2Cshared%7Cskins.archlinux&only=styles&skin=archlinux&*": "ArchWikiOffline.css",
     }
 
-    def __init__(self, wikiurl, output_directory, epoch):
+    def __init__(self, wikiurl, output_directory, epoch, cb_download=urllib.request.urlretrieve):
+        """ Parameters:
+            @wikiurl:       url of the wiki's api.php
+            @output_directory:  where to store the downloaded files
+            @epoch:         force update of every file older than this date (must be instance
+                            of 'datetime')
+            @cb_download:   callback function for the downloading itself
+                            it must accept 2 parameters: url and (full) destination path
+        """
+
         self.wiki = MediaWiki(wikiurl)
         self.output_directory = output_directory
         self.epoch = epoch
+        self.cb_download = cb_download
 
         # ensure output directory always exists
         if not os.path.isdir(self.output_directory):
@@ -116,9 +123,7 @@ class ArchWikiDownloader:
                     # it is probably useful anyway as it provides a permalink in #printfooter
                     fullurl += "?printable=yes"
 
-                    html = urllib.request.urlopen(fullurl)
-                    awoo = ArchWikiOptimizer(html, self.get_local_filename(title), self.output_directory)
-                    awoo.optimize()
+                    self.cb_download(fullurl, fname)
                 else:
                     print("  [up-to-date]  %s" % title)
 

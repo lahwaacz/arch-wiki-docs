@@ -3,25 +3,26 @@
 import os
 import lxml.etree
 import lxml.html
+import urllib.request
 
 class ArchWikiOptimizer:
-    def __init__(self, fin, fout, base_directory):
-        """ @fin: input for lxml (either file name, file object, file-like object or url)
-            @fout: output file name (must be absolute path)
-            @base_directory: absolute path to base output directory, used for
+    def __init__(self, base_directory):
+        """ @base_directory: absolute path to base output directory, used for
                              computation of relative links
         """
 
-        self.fin = fin
-        self.fout = fout
         self.base_directory = base_directory 
 
-        # path relative from the HTML file to base output directory
-        self.relbase = os.path.relpath(self.base_directory, os.path.split(self.fout)[0])
+    def optimize(self, url, fout):
+        """ @url: input url path for lxml
+            @fout: output file name (must be absolute path)
+        """
 
-    def optimize(self):
+        # path relative from the HTML file to base output directory
+        self.relbase = os.path.relpath(self.base_directory, os.path.split(fout)[0])
+
         # parse HTML into element tree
-        self.tree = lxml.html.parse(self.fin)
+        self.tree = lxml.html.parse(urllib.request.urlopen(url))
         self.root = self.tree.getroot()
 
         # optimize
@@ -33,12 +34,12 @@ class ArchWikiOptimizer:
 
         # ensure that target directory exists (necessary for subpages)
         try:
-            os.makedirs(os.path.split(self.fout)[0])
+            os.makedirs(os.path.split(fout)[0])
         except FileExistsError:
             pass
 
         # write output
-        f = open(self.fout, "w")
+        f = open(fout, "w")
         f.write(lxml.etree.tostring(self.root,
                                     pretty_print=True,
                                     encoding="unicode",
@@ -122,5 +123,6 @@ class ArchWikiOptimizer:
         f_list.insert(3, br)
 
 if __name__ == "__main__":
-    awoo = ArchWikiOfflineOptimizer("testing_input.html", "./testing_output.html", "./wiki")
-    awoo.optimize()
+    awoo = ArchWikiOptimizer("./wiki")
+#    awoo.optimize("testing_input.html", "./testing_output.html")
+    awoo.optimize("https://wiki.archlinux.org/index.php/Systemd", "./testing_output.html")
