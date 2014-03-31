@@ -4,8 +4,6 @@ import os
 import datetime
 import urllib.request
 
-from simplemediawiki import MediaWiki
-
 class ArchWikiDownloader:
     query_allpages = {
         "action": "query",
@@ -31,9 +29,9 @@ class ArchWikiDownloader:
         "https://wiki.archlinux.org/load.php?debug=false&lang=en&modules=mediawiki.legacy.commonPrint%2Cshared%7Cskins.archlinux&only=styles&skin=archlinux&*": "ArchWikiOffline.css",
     }
 
-    def __init__(self, wikiurl, output_directory, epoch, cb_download=urllib.request.urlretrieve):
+    def __init__(self, wiki, output_directory, epoch, cb_download=urllib.request.urlretrieve):
         """ Parameters:
-            @wikiurl:       url of the wiki's api.php
+            @wiki:          ArchWiki instance to work with
             @output_directory:  where to store the downloaded files
             @epoch:         force update of every file older than this date (must be instance
                             of 'datetime')
@@ -41,7 +39,7 @@ class ArchWikiDownloader:
                             it must accept 2 parameters: url and (full) destination path
         """
 
-        self.wiki = MediaWiki(wikiurl)
+        self.wiki = wiki
         self.output_directory = output_directory
         self.epoch = epoch
         self.cb_download = cb_download
@@ -52,43 +50,6 @@ class ArchWikiDownloader:
 
         # list of valid files
         self.files = []
-
-    def query_continue(self, query):
-        while True:
-            result = self.wiki.call(query)
-            if "error" in result:
-                raise Exception(result["error"])
-            if "warnings" in result:
-                print(result["warnings"])
-            if "query" in result:
-                yield result["query"]
-            if "continue" not in result:
-                break
-            query.update(result["continue"])
-
-    def print_namespaces(self):
-        nsmap = self.wiki.namespaces()
-        nsmap[0] = "Main"   # force main namespace to have name instead of empty string
-        print("Available namespaces:")
-        for ns in sorted(nsmap.keys()):
-            print("  %2d -- %s" % (ns, nsmap[ns]))
-
-    def get_local_filename(self, title):
-        """ return file name where the given page should be stored
-        """
-
-        # MediaWiki treats uses '_' in links instead of ' '
-        title = title.replace(" ", "_")
-
-        # handle anomalous titles beginning with '/' (e.g. "/dev/shm")
-        if title.startswith("/"):
-            title = title[1:]
-
-        # pages from File namespace already have an extension
-        if not title.startswith("File:"):
-            title += ".html"
-
-        return os.path.join(self.output_directory, title)
 
     def needs_update(self, fname, timestamp):
         """ determine if it is necessary to download a page
@@ -109,10 +70,10 @@ class ArchWikiDownloader:
 
         query = self.query_allpages.copy()
         query["gapnamespace"] = namespace
-        for pages_snippet in self.query_continue(query):
+        for pages_snippet in self.wiki.query_continue(query):
             for page in pages_snippet["pages"].values():
                 title = page["title"]
-                fname = self.get_local_filename(title)
+                fname = self.wiki.get_local_filename(title, self.output_directory)
                 self.files.append(fname)
                 timestamp = self.wiki.parse_date(page["touched"])
                 if self.needs_update(fname, timestamp):
@@ -138,10 +99,10 @@ class ArchWikiDownloader:
     def download_images(self):
         print("Downloading images...")
         query = self.query_allimages.copy()
-        for images_snippet in self.query_continue(query):
+        for images_snippet in self.wiki.query_continue(query):
             for image in images_snippet["allimages"]:
                 title = image["title"]
-                fname = self.get_local_filename(title)
+                fname = self.wiki.get_local_filename(title, self.output_directory)
                 self.files.append(fname)
                 timestamp = self.wiki.parse_date(image["timestamp"])
                 if self.needs_update(fname, timestamp):

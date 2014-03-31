@@ -1,16 +1,19 @@
 #! /usr/bin/env python
 
 import os
+import re
 import lxml.etree
 import lxml.html
 import urllib.request
+import urllib.parse
 
 class ArchWikiOptimizer:
-    def __init__(self, base_directory):
-        """ @base_directory: absolute path to base output directory, used for
+    def __init__(self, wiki, base_directory):
+        """ @wiki:           ArchWiki instance to work with
+            @base_directory: absolute path to base output directory, used for
                              computation of relative links
         """
-
+        self.wiki = wiki
         self.base_directory = base_directory 
 
     def optimize(self, url, fout):
@@ -88,19 +91,16 @@ class ArchWikiOptimizer:
 
         for a in self.root.cssselect("a"):
             href = a.get("href")
-            if href and href.startswith("/index.php/"):
-                # make relative
-                href = href.replace("/index.php", self.relbase)
-
-                # if not from the 'File' namespace, add the '.html' suffix
-                if not href.startswith("./File:"):
-                    # links to sections
-                    if "#" in href:
-                        href = href.replace("#", ".html#")
-                    else:
-                        href += ".html"
-
-                a.set("href", href)
+            if href is not None:
+                href = urllib.parse.unquote(href)
+                match = re.match("^/index.php/(.+?)(#.+)?$", str(href))
+                if match:
+                    title = match.group(1)
+                    fragment = match.group(2)
+                    href = self.wiki.get_local_filename(title, self.relbase)
+                    if fragment:
+                        href += fragment
+                    a.set("href", href)
 
         for i in self.root.cssselect("img"):
             src = i.get("src")
@@ -121,8 +121,3 @@ class ArchWikiOptimizer:
         f_list.insert(0, printfooter)
         br = lxml.etree.Element("br")
         f_list.insert(3, br)
-
-if __name__ == "__main__":
-    awoo = ArchWikiOptimizer("./wiki")
-#    awoo.optimize("testing_input.html", "./testing_output.html")
-    awoo.optimize("https://wiki.archlinux.org/index.php/Systemd", "./testing_output.html")

@@ -3,6 +3,7 @@
 import datetime
 import argparse
 
+from ArchWiki import ArchWiki
 from ArchWikiOptimizer import ArchWikiOptimizer
 from ArchWikiDownloader import ArchWikiDownloader
     
@@ -18,10 +19,11 @@ if __name__ == "__main__":
         # this should be the date of the latest incompatible change
         epoch = datetime.datetime(2014, 3, 20)
 
-    optimizer = ArchWikiOptimizer(args.output_directory)
+    aw = ArchWiki()
+    optimizer = ArchWikiOptimizer(aw, args.output_directory)
 
-    downloader = ArchWikiDownloader("https://wiki.archlinux.org/api.php", args.output_directory, epoch, cb_download=optimizer.optimize)
-    downloader.print_namespaces()
+    downloader = ArchWikiDownloader(aw, args.output_directory, epoch, cb_download=optimizer.optimize)
+    aw.print_namespaces()
     for ns in ["0", "4", "12", "14"]:
         downloader.process_namespace(ns)
 
