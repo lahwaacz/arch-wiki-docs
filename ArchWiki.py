@@ -6,6 +6,7 @@
 
 import os.path
 import re
+import hashlib
 
 from simplemediawiki import MediaWiki
 
@@ -85,11 +86,19 @@ interlanguage_internal = ["ar", "bg", "cs", "da", "el", "en", "es", "he", "hr",
                           "hu", "id", "it", "ja", "ko", "lt", "nl", "pl", "pt",
                           "ru", "sk", "sr", "th", "uk", "zh-cn", "zh-tw"]
 
+def is_ascii(text):
+    try:
+        text.encode("ascii")
+        return True
+    except:
+        return False
+
 class ArchWiki(MediaWiki):
 
-    def __init__(self):
+    def __init__(self, safe_filenames=False):
         super().__init__(url)
 
+        self._safe_filenames = safe_filenames
         self._namespaces = None
 
     def query_continue(self, query):
@@ -158,6 +167,12 @@ class ArchWiki(MediaWiki):
         # be safe and use '_' instead of ' ' in filenames (MediaWiki style)
         title = title.replace(" ", "_")
         namespace = namespace.replace(" ", "_") 
+
+        # force ASCII filename
+        if self._safe_filenames and not is_ascii(title):
+            h = hashlib.md5()
+            h.update(title.encode("utf-8"))
+            title = h.hexdigest()
 
         # select pattern per namespace
         if namespace in ["Main", "Talk"]:
