@@ -7,7 +7,7 @@ import lxml.html
 import urllib.request
 import urllib.parse
 
-class ArchWikiOptimizer:
+class Optimizer:
     def __init__(self, wiki, base_directory):
         """ @wiki:           ArchWiki instance to work with
             @base_directory: absolute path to base output directory, used for

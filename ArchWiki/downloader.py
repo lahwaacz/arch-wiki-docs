@@ -4,7 +4,7 @@ import os
 import datetime
 import urllib.request
 
-class ArchWikiDownloader:
+class Downloader:
     query_allpages = {
         "action": "query",
         "generator": "allpages",
@@ -71,7 +71,7 @@ class ArchWikiDownloader:
         query = self.query_allpages.copy()
         query["gapnamespace"] = namespace
         for pages_snippet in self.wiki.query_continue(query):
-            for page in pages_snippet["pages"].values():
+            for page in sorted(pages_snippet["pages"].values(), key=lambda d: d["title"]):
                 title = page["title"]
                 fname = self.wiki.get_local_filename(title, self.output_directory)
                 self.files.append(fname)

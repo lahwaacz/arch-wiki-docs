@@ -3,9 +3,7 @@
 import datetime
 import argparse
 
-from ArchWiki import ArchWiki
-from ArchWikiOptimizer import ArchWikiOptimizer
-from ArchWikiDownloader import ArchWikiDownloader
+import ArchWiki
     
 if __name__ == "__main__":
     aparser = argparse.ArgumentParser(description="Download pages from Arch Wiki and optimize them for offline browsing")
@@ -21,10 +19,10 @@ if __name__ == "__main__":
         # this should be the date of the latest incompatible change
         epoch = datetime.datetime(2014, 4, 5)
 
-    aw = ArchWiki(safe_filenames=args.safe_filenames)
-    optimizer = ArchWikiOptimizer(aw, args.output_directory)
+    aw = ArchWiki.ArchWiki(safe_filenames=args.safe_filenames)
+    optimizer = ArchWiki.Optimizer(aw, args.output_directory)
 
-    downloader = ArchWikiDownloader(aw, args.output_directory, epoch, cb_download=optimizer.optimize)
+    downloader = ArchWiki.Downloader(aw, args.output_directory, epoch, cb_download=optimizer.optimize)
     aw.print_namespaces()
     for ns in ["0", "4", "12", "14"]:
         downloader.process_namespace(ns)
