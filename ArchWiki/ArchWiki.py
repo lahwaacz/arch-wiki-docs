@@ -97,8 +97,15 @@ def is_ascii(text):
 
 class ArchWiki(MediaWiki):
 
-    def __init__(self, safe_filenames=False):
-        super().__init__(url)
+    def __init__(self, user_agent=None, safe_filenames=False):
+        """ Parameters:
+            @user_agent:    string to use as custom user-agent value, None for default
+            @safe_filenames: force self.get_local_filename() to return ASCII string
+        """
+        if user_agent is None:
+            super().__init__(url)
+        else:
+            super().__init__(url, user_agent=user_agent)
 
         self._safe_filenames = safe_filenames
         self._namespaces = None

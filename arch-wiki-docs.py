@@ -3,6 +3,8 @@
 import datetime
 import argparse
 
+from simplemediawiki import build_user_agent
+
 import ArchWiki
     
 if __name__ == "__main__":
@@ -19,7 +21,8 @@ if __name__ == "__main__":
         # this should be the date of the latest incompatible change
         epoch = datetime.datetime(2014, 4, 5)
 
-    aw = ArchWiki.ArchWiki(safe_filenames=args.safe_filenames)
+    user_agent = build_user_agent(__file__, ArchWiki.__version__, ArchWiki.__url__)
+    aw = ArchWiki.ArchWiki(user_agent=user_agent, safe_filenames=args.safe_filenames)
     optimizer = ArchWiki.Optimizer(aw, args.output_directory)
 
     downloader = ArchWiki.Downloader(aw, args.output_directory, epoch, cb_download=optimizer.optimize)
