@@ -19,13 +19,13 @@ if __name__ == "__main__":
         epoch = datetime.datetime.utcnow()
     else:
         # this should be the date of the latest incompatible change
-        epoch = datetime.datetime(2014, 4, 5)
+        epoch = datetime.datetime(2014, 4, 10)
 
     user_agent = build_user_agent(__file__, ArchWiki.__version__, ArchWiki.__url__)
     aw = ArchWiki.ArchWiki(user_agent=user_agent, safe_filenames=args.safe_filenames)
     optimizer = ArchWiki.Optimizer(aw, args.output_directory)
 
-    downloader = ArchWiki.Downloader(aw, args.output_directory, epoch, cb_download=optimizer.optimize)
+    downloader = ArchWiki.Downloader(aw, args.output_directory, epoch, cb_download=optimizer.optimize_url)
     aw.print_namespaces()
     for ns in ["0", "4", "12", "14"]:
         downloader.process_namespace(ns)

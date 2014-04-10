@@ -16,16 +16,22 @@ class Optimizer:
         self.wiki = wiki
         self.base_directory = base_directory 
 
-    def optimize(self, url, fout):
-        """ @url: input url path for lxml
-            @fout: output file name (must be absolute path)
+    def optimize_url(self, url, fout):
+        """ @url: input url path
+            @fout: output file path
+        """
+        self.optimize(urllib.request.urlopen(url), fout)
+
+    def optimize(self, fin, fout):
+        """ @fin: file name or file-like object with input data
+            @fout: output file path
         """
 
         # path relative from the HTML file to base output directory
         self.relbase = os.path.relpath(self.base_directory, os.path.split(fout)[0])
 
         # parse HTML into element tree
-        self.tree = lxml.html.parse(urllib.request.urlopen(url))
+        self.tree = lxml.html.parse(fin)
         self.root = self.tree.getroot()
 
         # optimize
@@ -59,6 +65,9 @@ class Optimizer:
 
         # strip comments (including IE 6/7 fixes, which are useless for an Arch package)
         lxml.etree.strip_elements(self.root, lxml.etree.Comment)
+
+        # strip <script> tags
+        lxml.etree.strip_elements(self.root, "script")
 
     def fix_layout(self):
         """ fix page layout after removing some elements
