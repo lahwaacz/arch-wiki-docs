@@ -97,10 +97,11 @@ def is_ascii(text):
 
 class ArchWiki(MediaWiki):
 
-    def __init__(self, user_agent=None, safe_filenames=False):
+    def __init__(self, user_agent=None, safe_filenames=False, resolve_redirects=True):
         """ Parameters:
             @user_agent:    string to use as custom user-agent value, None for default
             @safe_filenames: force self.get_local_filename() to return ASCII string
+            @resolve_redirects: whether to resolve redirects inside self.get_local_filename()
         """
         if user_agent is None:
             super().__init__(url)
@@ -108,7 +109,9 @@ class ArchWiki(MediaWiki):
             super().__init__(url, user_agent=user_agent)
 
         self._safe_filenames = safe_filenames
+        self._resolve_redirects = resolve_redirects
         self._namespaces = None
+        self._redirects = None
 
     def query_continue(self, query):
         """ Generator for MediaWiki's query-continue feature.
@@ -170,12 +173,15 @@ class ArchWiki(MediaWiki):
     def get_local_filename(self, title, basepath):
         """ Return file name where the given page should be stored, relative to 'basepath'.
         """
+        if self._resolve_redirects is True:
+            title = self.resolve_redirect(title)
+
         title, lang = self.detect_language(title)
         title, namespace = self.detect_namespace(title)
 
         # be safe and use '_' instead of ' ' in filenames (MediaWiki style)
         title = title.replace(" ", "_")
-        namespace = namespace.replace(" ", "_") 
+        namespace = namespace.replace(" ", "_")
 
         # force ASCII filename
         if self._safe_filenames and not is_ascii(title):
@@ -201,3 +207,55 @@ class ArchWiki(MediaWiki):
             ext="html"
         )
         return os.path.normpath(path)
+
+    def _fetch_redirects(self):
+        """ Fetch dictionary of redirect pages and their targets
+        """
+        query_allredirects = {
+            "action": "query",
+            "generator": "allpages",
+            "gaplimit": "50",
+            "gapfilterredir": "redirects",
+            "gapnamespace": "0",
+            "continue": "",
+        }
+        namespaces = ["0", "4", "12"]
+
+        self._redirects = []
+
+        for ns in namespaces:
+            query = query_allredirects.copy()
+            query["gapnamespace"] = ns
+
+            for pages_snippet in self.query_continue(query):
+                pages_snippet = sorted(pages_snippet["pages"].values(), key=lambda d: d["title"])
+                pageids = [str(page["pageid"]) for page in pages_snippet]
+                print("  [fetching redirects] pages %s - %s" % (pages_snippet[0]["title"], pages_snippet[-1]["title"]))
+                result = self.call({"action": "query", "redirects": "", "pageids": "|".join(pageids)})
+                self._redirects.extend(result["query"]["redirects"])
+
+    def redirects(self):
+        if self._redirects is None:
+            self._fetch_redirects()
+        return self._redirects
+
+    def resolve_redirect(self, title):
+        """ Returns redirect target title, or given title if it is not redirect.
+            The returned title will always contain spaces instead of underscores.
+        """
+        def target_title(r):
+            if r.get("tofragment"):
+                return "%s#%s" % (r.get("to"), r.get("tofragment"))
+            return r.get("to")
+
+        # the given title must match the format of titles used in self._redirects
+        title = title.replace("_", " ")
+
+        if self._redirects is None:
+            self._fetch_redirects()
+
+        try:
+            res = next((item for item in self._redirects if item["from"] == title))
+            return target_title(res)
+        except StopIteration:
+            return title
