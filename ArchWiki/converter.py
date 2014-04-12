@@ -100,12 +100,15 @@ class Converter:
                 outdir = os.path.join(self.output_dir, os.path.relpath(path, self.input_dir))
                 outfile = os.path.join(os.path.normpath(outdir), f)
                 outfile = os.path.splitext(outfile)[0] + "." + self.output_format
-                try:
-                    self.convert_file(infile, outfile)
-                except PandocError as e:
-                    failed.append(infile)
-                    print(e)
-                    print("  [conv failed] %s" % infile)
+                if infile.endswith(".html"):
+                    try:
+                        self.convert_file(infile, outfile)
+                    except PandocError as e:
+                        failed.append(infile)
+                        print(e)
+                        print("  [conv failed] %s" % infile)
+                else:
+                    print("  [skip conv]   %s" % infile)
         
         if len(failed) > 0:
             print("failed to convert %d pages:" % len(failed))
@@ -150,5 +153,5 @@ class Converter:
 
 if __name__ == "__main__":
     f = ManFilter()
-    c = Converter(f, "./wiki/en", "./output/en", "man")
+    c = Converter(f, "./wiki/", "./output/", "man")
     c.convert()
