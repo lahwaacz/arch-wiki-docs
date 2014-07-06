@@ -73,12 +73,13 @@ class Optimizer:
         """ fix page layout after removing some elements
         """
 
-        gw = self.root.cssselect("#globalWrapper")[0]
-        gw.set("style", "width: 100%")
-        c = self.root.cssselect("#content")[0]
-        c.set("style", "margin: 2em; margin-bottom: 0")
-        fl = self.root.cssselect("#f-list")[0]
-        fl.set("style", "margin: 0 2em")
+        # in case of select-by-id a list with max one element is returned
+        for gw in self.root.cssselect("#globalWrapper"):
+            gw.set("style", "width: 100%")
+        for c in self.root.cssselect("#content"):
+            c.set("style", "margin: 2em; margin-bottom: 0")
+        for fl in self.root.cssselect("#f-list"):
+            fl.set("style", "margin: 0 2em")
 
     def replace_css_links(self):
         """ force using local CSS
@@ -119,14 +120,14 @@ class Optimizer:
 
     def fix_footer(self):
         """ move content from 'div.printfooter' into item in '#f-list'
-            (normally 'div#printfooter' is given 'display:none' and is separated by
+            (normally 'div.printfooter' is given 'display:none' and is separated by
             the categories list from the real footer)
         """
 
-        printfooter = self.root.cssselect("div.printfooter")[0]
-        printfooter.attrib.pop("class")
-        printfooter.tag = "li"
-        f_list = self.root.cssselect("#f-list")[0]
-        f_list.insert(0, printfooter)
-        br = lxml.etree.Element("br")
-        f_list.insert(3, br)
+        for printfooter in self.root.cssselect("div.printfooter"):
+            printfooter.attrib.pop("class")
+            printfooter.tag = "li"
+            f_list = self.root.cssselect("#f-list")[0]
+            f_list.insert(0, printfooter)
+            br = lxml.etree.Element("br")
+            f_list.insert(3, br)
