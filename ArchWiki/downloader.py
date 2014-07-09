@@ -8,7 +8,7 @@ class Downloader:
     query_allpages = {
         "action": "query",
         "generator": "allpages",
-        "gaplimit": "500",
+        "gaplimit": "max",
         "gapfilterredir": "nonredirects",
         "gapnamespace": "0",
         "prop": "info",
@@ -19,7 +19,7 @@ class Downloader:
     query_allimages = {
         "action": "query",
         "list": "allimages",
-        "ailimit": "500",
+        "ailimit": "max",
         "aiprop": "url|timestamp",
         "aimaxsize": "10000",
         "continue": "",

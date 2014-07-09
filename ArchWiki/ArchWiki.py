@@ -97,16 +97,13 @@ def is_ascii(text):
 
 class ArchWiki(MediaWiki):
 
-    def __init__(self, user_agent=None, safe_filenames=False, resolve_redirects=True):
+    def __init__(self, safe_filenames=False, resolve_redirects=True, **kwargs):
         """ Parameters:
-            @user_agent:    string to use as custom user-agent value, None for default
             @safe_filenames: force self.get_local_filename() to return ASCII string
             @resolve_redirects: whether to resolve redirects inside self.get_local_filename()
+            + all keyword arguments of simplemediawiki.MediaWiki
         """
-        if user_agent is None:
-            super().__init__(url)
-        else:
-            super().__init__(url, user_agent=user_agent)
+        super().__init__(url, **kwargs)
 
         self._safe_filenames = safe_filenames
         self._resolve_redirects = resolve_redirects
@@ -214,7 +211,7 @@ class ArchWiki(MediaWiki):
         query_allredirects = {
             "action": "query",
             "generator": "allpages",
-            "gaplimit": "50",
+            "gaplimit": "max",
             "gapfilterredir": "redirects",
             "gapnamespace": "0",
             "continue": "",
