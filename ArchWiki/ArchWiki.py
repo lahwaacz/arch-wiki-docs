@@ -187,9 +187,9 @@ class ArchWiki(MediaWiki):
             title = h.hexdigest()
 
         # select pattern per namespace
-        if namespace in ["Main", "Talk"]:
+        if namespace == "Main":
             pattern = "{base}/{langsubtag}/{title}.{ext}"
-        elif namespace in ["ArchWiki", "ArchWiki_talk", "Template", "Template_talk", "Help", "Help_talk", "Category", "Category_talk"]:
+        elif namespace in ["Talk", "ArchWiki", "ArchWiki_talk", "Template", "Template_talk", "Help", "Help_talk", "Category", "Category_talk"]:
             pattern = "{base}/{langsubtag}/{namespace}:{title}.{ext}"
         elif namespace == "File":
             pattern = "{base}/{namespace}:{title}"
