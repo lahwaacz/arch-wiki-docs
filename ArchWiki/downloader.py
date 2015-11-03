@@ -26,7 +26,7 @@ class Downloader:
     }
 
     css_links = {
-        "https://wiki.archlinux.org/load.php?debug=false&lang=en&modules=mediawiki.legacy.commonPrint%2Cshared%7Cskins.archlinux&only=styles&skin=archlinux&*": "ArchWikiOffline.css",
+        "https://wiki.archlinux.org/load.php?debug=false&lang=en&modules=mediawiki.legacy.commonPrint%2Cshared%7Cmediawiki.sectionAnchor%7Cmediawiki.skinning.content.externallinks%7Cmediawiki.skinning.interface%7Cmediawiki.ui.button%7Cskins.archlinux.styles&only=styles&skin=archlinux&*": "ArchWikiOffline.css",
     }
 
     def __init__(self, wiki, output_directory, epoch, cb_download=urllib.request.urlretrieve):
