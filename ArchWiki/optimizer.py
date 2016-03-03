@@ -108,6 +108,8 @@ class Optimizer:
                     title = self.wiki.resolve_redirect(match.group(1))
                     try:
                         title, fragment = title.split("#", maxsplit=1)
+                        # FIXME has to be dot-encoded
+                        fragment = fragment.replace(" ", "_")
                     except ValueError:
                         fragment = ""
                     # explicit fragment overrides the redirect

@@ -97,7 +97,7 @@ def is_ascii(text):
 
 class ArchWiki(MediaWiki):
 
-    def __init__(self, safe_filenames=False, resolve_redirects=True, **kwargs):
+    def __init__(self, safe_filenames=False, **kwargs):
         """ Parameters:
             @safe_filenames: force self.get_local_filename() to return ASCII string
             @resolve_redirects: whether to resolve redirects inside self.get_local_filename()
@@ -106,7 +106,6 @@ class ArchWiki(MediaWiki):
         super().__init__(url, **kwargs)
 
         self._safe_filenames = safe_filenames
-        self._resolve_redirects = resolve_redirects
         self._namespaces = None
         self._redirects = None
 
@@ -178,9 +177,6 @@ class ArchWiki(MediaWiki):
     def get_local_filename(self, title, basepath):
         """ Return file name where the given page should be stored, relative to 'basepath'.
         """
-        if self._resolve_redirects is True:
-            title = self.resolve_redirect(title)
-
         title, lang = self.detect_language(title)
         title, namespace = self.detect_namespace(title)
 
