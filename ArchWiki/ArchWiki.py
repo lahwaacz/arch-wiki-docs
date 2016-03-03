@@ -114,8 +114,16 @@ class ArchWiki(MediaWiki):
         """ Generator for MediaWiki's query-continue feature.
             ref: https://www.mediawiki.org/wiki/API:Query#Continuing_queries
         """
+        last_continue = {"continue": ""}
+
         while True:
-            result = self.call(query)
+            # clone the original params to clean up old continue params
+            query_copy = query.copy()
+            # and update with the last continue -- it may involve multiple params,
+            # hence the clean up with params.copy()
+            query_copy.update(last_continue)
+            # call the API and handle the result
+            result = self.call(query_copy)
             if "error" in result:
                 raise Exception(result["error"])
             if "warnings" in result:
@@ -124,7 +132,7 @@ class ArchWiki(MediaWiki):
                 yield result["query"]
             if "continue" not in result:
                 break
-            query.update(result["continue"])
+            last_continue = result["continue"]
 
     def namespaces(self):
         """ Force the Main namespace to have name instead of empty string.
