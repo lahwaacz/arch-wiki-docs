@@ -103,13 +103,19 @@ class Optimizer:
             href = a.get("href")
             if href is not None:
                 href = urllib.parse.unquote(href)
-                match = re.match("^/index.php/(.+?)(#.+)?$", str(href))
+                match = re.match("^/index.php/(.+?)(?:#(.+))?$", str(href))
                 if match:
-                    title = match.group(1)
-                    fragment = match.group(2)
+                    title = self.wiki.resolve_redirect(match.group(1))
+                    try:
+                        title, fragment = title.split("#", maxsplit=1)
+                    except ValueError:
+                        fragment = ""
+                    # explicit fragment overrides the redirect
+                    if match.group(2):
+                        fragment = match.group(2)
                     href = self.wiki.get_local_filename(title, self.relbase)
                     if fragment:
-                        href += fragment
+                        href += "#" + fragment
                     a.set("href", href)
 
         for i in self.root.cssselect("img"):

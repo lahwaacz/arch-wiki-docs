@@ -220,24 +220,30 @@ class ArchWiki(MediaWiki):
             "action": "query",
             "generator": "allpages",
             "gaplimit": "max",
-            "gapfilterredir": "redirects",
-            "gapnamespace": "0",
-            "continue": "",
+            "gapfilterredir": "nonredirects",
+            "prop": "redirects",
+            "rdprop": "title|fragment",
+            "rdlimit": "max",
         }
         namespaces = ["0", "4", "12"]
 
-        self._redirects = []
+        self._redirects = {}
 
         for ns in namespaces:
-            query = query_allredirects.copy()
-            query["gapnamespace"] = ns
+            query_allredirects["gapnamespace"] = ns
 
-            for pages_snippet in self.query_continue(query):
+            for pages_snippet in self.query_continue(query_allredirects):
                 pages_snippet = sorted(pages_snippet["pages"].values(), key=lambda d: d["title"])
-                pageids = [str(page["pageid"]) for page in pages_snippet]
-                print("  [fetching redirects] pages %s - %s" % (pages_snippet[0]["title"], pages_snippet[-1]["title"]))
-                result = self.call({"action": "query", "redirects": "", "pageids": "|".join(pageids)})
-                self._redirects.extend(result["query"]["redirects"])
+                for page in pages_snippet:
+                    # construct the mapping, the query result is somewhat reversed...
+                    target_title = page["title"]
+                    for redirect in page.get("redirects", []):
+                        source_title = redirect["title"]
+                        target_fragment = redirect.get("fragment")
+                        if target_fragment:
+                            self._redirects[source_title] = "{}#{}".format(target_title, target_fragment)
+                        else:
+                            self._redirects[source_title] = target_title
 
     def redirects(self):
         if self._redirects is None:
@@ -248,19 +254,7 @@ class ArchWiki(MediaWiki):
         """ Returns redirect target title, or given title if it is not redirect.
             The returned title will always contain spaces instead of underscores.
         """
-        def target_title(r):
-            if r.get("tofragment"):
-                return "%s#%s" % (r.get("to"), r.get("tofragment"))
-            return r.get("to")
-
         # the given title must match the format of titles used in self._redirects
         title = title.replace("_", " ")
 
-        if self._redirects is None:
-            self._fetch_redirects()
-
-        try:
-            res = next((item for item in self._redirects if item["from"] == title))
-            return target_title(res)
-        except StopIteration:
-            return title
+        return self.redirects().get(title, title)

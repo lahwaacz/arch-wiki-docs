@@ -19,7 +19,7 @@ if __name__ == "__main__":
         epoch = datetime.datetime.utcnow()
     else:
         # this should be the date of the latest incompatible change
-        epoch = datetime.datetime(2014, 4, 12)
+        epoch = datetime.datetime(2016, 3, 3, 14, 0, 0)
 
     user_agent = build_user_agent(__file__, ArchWiki.__version__, ArchWiki.__url__)
     aw = ArchWiki.ArchWiki(user_agent=user_agent, safe_filenames=args.safe_filenames)
