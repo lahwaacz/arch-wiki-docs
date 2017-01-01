@@ -221,7 +221,7 @@ class ArchWiki(MediaWiki):
             "rdprop": "title|fragment",
             "rdlimit": "max",
         }
-        namespaces = ["0", "4", "12"]
+        namespaces = ["0", "4", "12", "14"]
 
         self._redirects = {}
 
