@@ -60,7 +60,7 @@ class Optimizer:
         """ remove elements useless in offline browsing
         """
 
-        for e in self.root.cssselect("#archnavbar, #column-one, span.mw-editsection, #jump-to-nav, #siteSub"):
+        for e in self.root.cssselect("#archnavbar, #mw-page-base, #mw-head-base, #mw-navigation"):
             e.getparent().remove(e)
 
         # strip comments (including IE 6/7 fixes, which are useless for an Arch package)
@@ -74,12 +74,10 @@ class Optimizer:
         """
 
         # in case of select-by-id a list with max one element is returned
-        for gw in self.root.cssselect("#globalWrapper"):
-            gw.set("style", "width: 100%")
         for c in self.root.cssselect("#content"):
-            c.set("style", "margin: 2em; margin-bottom: 0")
-        for fl in self.root.cssselect("#f-list"):
-            fl.set("style", "margin: 0 2em")
+            c.set("style", "margin: 0")
+        for f in self.root.cssselect("#footer"):
+            f.set("style", "margin: 0")
 
     def replace_css_links(self):
         """ force using local CSS
@@ -87,7 +85,7 @@ class Optimizer:
 
         links = self.root.xpath("//head/link[@rel=\"stylesheet\"]")
 
-        # FIXME: pass css fille name as parameter
+        # FIXME: pass css file name as parameter
         # overwrite first
         links[0].set("href", os.path.join(self.relbase, "ArchWikiOffline.css"))
         
@@ -127,7 +125,7 @@ class Optimizer:
                 i.set("src", src)
 
     def fix_footer(self):
-        """ move content from 'div.printfooter' into item in '#f-list'
+        """ move content from 'div.printfooter' into item in '#footer-info'
             (normally 'div.printfooter' is given 'display:none' and is separated by
             the categories list from the real footer)
         """
@@ -135,7 +133,7 @@ class Optimizer:
         for printfooter in self.root.cssselect("div.printfooter"):
             printfooter.attrib.pop("class")
             printfooter.tag = "li"
-            f_list = self.root.cssselect("#f-list")[0]
+            f_list = self.root.cssselect("#footer-info")[0]
             f_list.insert(0, printfooter)
             br = lxml.etree.Element("br")
             f_list.insert(3, br)

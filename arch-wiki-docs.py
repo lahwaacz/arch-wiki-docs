@@ -26,12 +26,12 @@ if __name__ == "__main__":
     optimizer = ArchWiki.Optimizer(aw, args.output_directory)
 
     downloader = ArchWiki.Downloader(aw, args.output_directory, epoch, cb_download=optimizer.optimize_url)
+    downloader.download_css()
     aw.print_namespaces()
     for ns in ["0", "4", "12", "14"]:
         downloader.process_namespace(ns)
 
     downloader.download_images()
-    downloader.download_css()
 
     if args.clean:
         downloader.clean_output_directory()

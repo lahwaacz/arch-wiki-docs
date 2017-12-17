@@ -26,7 +26,7 @@ class Downloader:
     }
 
     css_links = {
-        "https://wiki.archlinux.org/load.php?debug=false&lang=en&modules=mediawiki.legacy.commonPrint,shared|mediawiki.skinning.content.externallinks|mediawiki.skinning.interface|skins.archlinux.styles|site&only=styles&skin=archlinux": "ArchWikiOffline.css",
+        "https://wiki.archlinux.org/load.php?debug=false&lang=en&modules=mediawiki.legacy.commonPrint,shared|mediawiki.sectionAnchor|mediawiki.skinning.interface|skins.vector.styles|skins.vector.styles.responsive|zzz.ext.archLinux.styles&only=styles&skin=vector": "ArchWikiOffline.css",
     }
 
     def __init__(self, wiki, output_directory, epoch, cb_download=urllib.request.urlretrieve):
@@ -80,9 +80,8 @@ class Downloader:
                     print("  [downloading] %s" % title)
                     fullurl = page["fullurl"]
 
-                    # FIXME: this is hack to avoid weird caching issues on ArchWiki
-                    # it is probably useful anyway as it provides a permalink in #printfooter
-                    fullurl += "?printable=yes"
+                    # FIXME: printable=yes is a hack to avoid weird caching issues on ArchWiki
+                    fullurl += "?printable=yes&useskin=vector"
 
                     self.cb_download(fullurl, fname)
                 else:
