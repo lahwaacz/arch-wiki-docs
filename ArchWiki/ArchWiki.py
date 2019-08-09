@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 """ Module extending generic MediaWiki interface with stuff specific to ArchWiki
     and some convenient generic methods.
