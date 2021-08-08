@@ -25,7 +25,7 @@ if __name__ == "__main__":
     aw = ArchWiki.ArchWiki(user_agent=user_agent, safe_filenames=args.safe_filenames)
     optimizer = ArchWiki.Optimizer(aw, args.output_directory)
 
-    downloader = ArchWiki.Downloader(aw, args.output_directory, epoch, cb_download=optimizer.optimize_url)
+    downloader = ArchWiki.Downloader(aw, args.output_directory, epoch, optimizer=optimizer)
     downloader.download_css()
     aw.print_namespaces()
     for ns in ["0", "4", "12", "14"]:

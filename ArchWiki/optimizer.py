@@ -4,7 +4,6 @@ import os
 import re
 import lxml.etree
 import lxml.html
-import urllib.request
 import urllib.parse
 
 class Optimizer:
@@ -14,90 +13,72 @@ class Optimizer:
                              computation of relative links
         """
         self.wiki = wiki
-        self.base_directory = base_directory 
+        self.base_directory = base_directory
 
-    def optimize_url(self, url, fout):
-        """ @url: input url path
-            @fout: output file path
-        """
-        self.optimize(urllib.request.urlopen(url), fout)
-
-    def optimize(self, fin, fout):
-        """ @fin: file name or file-like object with input data
-            @fout: output file path
-        """
-
+    def optimize(self, title, html_content):
         # path relative from the HTML file to base output directory
-        self.relbase = os.path.relpath(self.base_directory, os.path.split(fout)[0])
+        relbase = os.path.relpath(self.base_directory, os.path.dirname(title))
 
-        # parse HTML into element tree
-        self.tree = lxml.html.parse(fin)
-        self.root = self.tree.getroot()
+        css_path = os.path.join(relbase, "ArchWikiOffline.css")
+
+        # parse the HTML
+        root = lxml.html.document_fromstring(html_content)
 
         # optimize
-        self.strip_page()
-        self.fix_layout()
-        self.replace_css_links()
-        self.update_links()
-        self.fix_footer()
+        self.strip_page(root)
+        self.fix_layout(root)
+        self.replace_css_links(root, css_path)
+        self.update_links(root, relbase)
+        self.fix_footer(root)
 
-        # ensure that target directory exists (necessary for subpages)
-        try:
-            os.makedirs(os.path.split(fout)[0])
-        except FileExistsError:
-            pass
+        # return output
+        return lxml.etree.tostring(root,
+                                   pretty_print=True,
+                                   encoding="unicode",
+                                   method="html",
+                                   doctype="<!DOCTYPE html>")
 
-        # write output
-        f = open(fout, "w")
-        f.write(lxml.etree.tostring(self.root,
-                                    pretty_print=True,
-                                    encoding="unicode",
-                                    method="html",
-                                    doctype="<!DOCTYPE html>"))
-        f.close()
-
-    def strip_page(self):
+    def strip_page(self, root):
         """ remove elements useless in offline browsing
         """
 
-        for e in self.root.cssselect("#archnavbar, #mw-page-base, #mw-head-base, #mw-navigation"):
+        for e in root.cssselect("#archnavbar, #mw-page-base, #mw-head-base, #mw-navigation"):
             e.getparent().remove(e)
 
         # strip comments (including IE 6/7 fixes, which are useless for an Arch package)
-        lxml.etree.strip_elements(self.root, lxml.etree.Comment)
+        lxml.etree.strip_elements(root, lxml.etree.Comment)
 
         # strip <script> tags
-        lxml.etree.strip_elements(self.root, "script")
+        lxml.etree.strip_elements(root, "script")
 
-    def fix_layout(self):
+    def fix_layout(self, root):
         """ fix page layout after removing some elements
         """
 
         # in case of select-by-id a list with max one element is returned
-        for c in self.root.cssselect("#content"):
+        for c in root.cssselect("#content"):
             c.set("style", "margin: 0")
-        for f in self.root.cssselect("#footer"):
+        for f in root.cssselect("#footer"):
             f.set("style", "margin: 0")
 
-    def replace_css_links(self):
+    def replace_css_links(self, root, css_path):
         """ force using local CSS
         """
 
-        links = self.root.xpath("//head/link[@rel=\"stylesheet\"]")
+        links = root.xpath("//head/link[@rel=\"stylesheet\"]")
 
-        # FIXME: pass css file name as parameter
         # overwrite first
-        links[0].set("href", os.path.join(self.relbase, "ArchWikiOffline.css"))
-        
+        links[0].set("href", css_path)
+
         # remove the rest
         for link in links[1:]:
             link.getparent().remove(link)
 
-    def update_links(self):
+    def update_links(self, root, relbase):
         """ change "internal" wiki links into relative
         """
 
-        for a in self.root.cssselect("a"):
+        for a in root.cssselect("a"):
             href = a.get("href")
             if href is not None:
                 href = urllib.parse.unquote(href)
@@ -113,27 +94,27 @@ class Optimizer:
                     # explicit fragment overrides the redirect
                     if match.group(2):
                         fragment = match.group(2)
-                    href = self.wiki.get_local_filename(title, self.relbase)
+                    href = self.wiki.get_local_filename(title, relbase)
                     if fragment:
                         href += "#" + fragment
                     a.set("href", href)
 
-        for i in self.root.cssselect("img"):
+        for i in root.cssselect("img"):
             src = i.get("src")
             if src and src.startswith("/images/"):
-                src = os.path.join(self.relbase, "File:" + os.path.split(src)[1])
+                src = os.path.join(relbase, "File:" + os.path.split(src)[1])
                 i.set("src", src)
 
-    def fix_footer(self):
+    def fix_footer(self, root):
         """ move content from 'div.printfooter' into item in '#footer-info'
             (normally 'div.printfooter' is given 'display:none' and is separated by
             the categories list from the real footer)
         """
 
-        for printfooter in self.root.cssselect("div.printfooter"):
+        for printfooter in root.cssselect("div.printfooter"):
             printfooter.attrib.pop("class")
             printfooter.tag = "li"
-            f_list = self.root.cssselect("#footer-info")[0]
+            f_list = root.cssselect("#footer-info")[0]
             f_list.insert(0, printfooter)
             br = lxml.etree.Element("br")
             f_list.insert(3, br)

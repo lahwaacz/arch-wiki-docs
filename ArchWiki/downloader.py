@@ -2,7 +2,9 @@
 
 import os
 import datetime
-import urllib.request
+
+import requests
+from requests.packages.urllib3.util.retry import Retry
 
 class Downloader:
     query_allpages = {
@@ -29,20 +31,19 @@ class Downloader:
         "https://wiki.archlinux.org/load.php?debug=false&lang=en&modules=mediawiki.legacy.commonPrint,shared|mediawiki.sectionAnchor|mediawiki.skinning.interface|skins.vector.styles|skins.vector.styles.responsive|zzz.ext.archLinux.styles&only=styles&skin=vector": "ArchWikiOffline.css",
     }
 
-    def __init__(self, wiki, output_directory, epoch, cb_download=urllib.request.urlretrieve):
+    def __init__(self, wiki, output_directory, epoch, *, optimizer=None):
         """ Parameters:
             @wiki:          ArchWiki instance to work with
             @output_directory:  where to store the downloaded files
             @epoch:         force update of every file older than this date (must be instance
                             of 'datetime')
-            @cb_download:   callback function for the downloading itself
-                            it must accept 2 parameters: url and (full) destination path
+            @optimizer:     callback function for HTML post-processing
         """
 
         self.wiki = wiki
         self.output_directory = output_directory
         self.epoch = epoch
-        self.cb_download = cb_download
+        self.optimizer = optimizer
 
         # ensure output directory always exists
         if not os.path.isdir(self.output_directory):
@@ -50,6 +51,13 @@ class Downloader:
 
         # list of valid files
         self.files = []
+
+        self.session = requests.Session()
+        # granular control over requests' retries: https://stackoverflow.com/a/35504626
+        retries = Retry(total=3, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
+        adapter = requests.adapters.HTTPAdapter(max_retries=retries)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
 
     def needs_update(self, fname, timestamp):
         """ determine if it is necessary to download a page
@@ -66,7 +74,7 @@ class Downloader:
         """ walk all pages in given namespace, download if necessary
         """
 
-        print("Processing namespace %s..." % namespace)
+        print(f"Processing namespace {namespace}...")
 
         query = self.query_allpages.copy()
         query["gapnamespace"] = namespace
@@ -77,12 +85,22 @@ class Downloader:
                 self.files.append(fname)
                 timestamp = self.wiki.parse_date(page["touched"])
                 if self.needs_update(fname, timestamp):
-                    print("  [downloading] %s" % title)
+                    print(f"  [downloading] {title}")
                     fullurl = page["fullurl"]
 
-                    self.cb_download(fullurl, fname)
+                    r = self.session.get(fullurl)
+                    if self.optimizer is not None:
+                        text = self.optimizer.optimize(fname, r.text)
+                    else:
+                        text = r.text
+
+                    # ensure that target directory exists (necessary for subpages)
+                    os.makedirs(os.path.dirname(fname), exist_ok=True)
+
+                    with open(fname, "w") as fd:
+                        fd.write(text)
                 else:
-                    print("  [up-to-date]  %s" % title)
+                    print(f"  [up-to-date]  {title}")
 
     def download_css(self):
         print("Downloading CSS...")
@@ -90,7 +108,9 @@ class Downloader:
             print(" ", dest)
             fname = os.path.join(self.output_directory, dest)
             self.files.append(fname)
-            urllib.request.urlretrieve(link, fname)
+            r = self.session.get(link)
+            with open(fname, "w") as fd:
+                fd.write(r.text)
 
     def download_images(self):
         print("Downloading images...")
@@ -102,11 +122,12 @@ class Downloader:
                 self.files.append(fname)
                 timestamp = self.wiki.parse_date(image["timestamp"])
                 if self.needs_update(fname, timestamp):
-                    print("  [downloading] %s" % title)
-                    url = image["url"]
-                    urllib.request.urlretrieve(url, fname)
+                    print(f"  [downloading] {title}")
+                    r = self.session.get(image["url"])
+                    with open(fname, "w") as fd:
+                        fd.write(r.text)
                 else:
-                    print("  [up-to-date]  %s" % title)
+                    print(f"  [up-to-date]  {title}")
 
     def clean_output_directory(self):
         """ Walk output_directory and delete all files not found on the wiki.
@@ -121,10 +142,10 @@ class Downloader:
             for f in files:
                 fpath = os.path.join(path, f)
                 if fpath not in valid_files:
-                    print("  [deleting]    %s" % fpath)
+                    print(f"  [deleting]    {fpath}")
                     os.unlink(fpath)
 
             # remove empty directories
             if len(os.listdir(path)) == 0:
-                print("  [deleting]    %s/" % path)
+                print(f"  [deleting]    {path}/")
                 os.rmdir(path)
