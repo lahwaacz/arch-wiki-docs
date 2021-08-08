@@ -80,9 +80,6 @@ class Downloader:
                     print("  [downloading] %s" % title)
                     fullurl = page["fullurl"]
 
-                    # FIXME: printable=yes is a hack to avoid weird caching issues on ArchWiki
-                    fullurl += "?printable=yes&useskin=vector"
-
                     self.cb_download(fullurl, fname)
                 else:
                     print("  [up-to-date]  %s" % title)
