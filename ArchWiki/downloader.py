@@ -124,8 +124,8 @@ class Downloader:
                 if self.needs_update(fname, timestamp):
                     print(f"  [downloading] {title}")
                     r = self.session.get(image["url"])
-                    with open(fname, "w") as fd:
-                        fd.write(r.text)
+                    with open(fname, "wb") as fd:
+                        fd.write(r.content)
                 else:
                     print(f"  [up-to-date]  {title}")
 
