@@ -82,7 +82,7 @@ class Optimizer:
             href = a.get("href")
             if href is not None:
                 href = urllib.parse.unquote(href)
-                match = re.match("^/index.php/(.+?)(?:#(.+))?$", str(href))
+                match = re.match("^/title/(.+?)(?:#(.+))?$", str(href))
                 if match:
                     title = self.wiki.resolve_redirect(match.group(1))
                     try:

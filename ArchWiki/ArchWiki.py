@@ -100,7 +100,6 @@ class ArchWiki(MediaWiki):
     def __init__(self, safe_filenames=False, **kwargs):
         """ Parameters:
             @safe_filenames: force self.get_local_filename() to return ASCII string
-            @resolve_redirects: whether to resolve redirects inside self.get_local_filename()
             + all keyword arguments of simplemediawiki.MediaWiki
         """
         super().__init__(url, **kwargs)
