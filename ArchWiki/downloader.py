@@ -82,6 +82,9 @@ class Downloader:
             for page in sorted(pages_snippet["pages"].values(), key=lambda d: d["title"]):
                 title = page["title"]
                 fname = self.wiki.get_local_filename(title, self.output_directory)
+                if not fname:
+                    print(f"  [skipping] {title}")
+                    continue
                 self.files.append(fname)
                 timestamp = self.wiki.parse_date(page["touched"])
                 if self.needs_update(fname, timestamp):
@@ -107,10 +110,11 @@ class Downloader:
         for link, dest in self.css_links.items():
             print(" ", dest)
             fname = os.path.join(self.output_directory, dest)
-            self.files.append(fname)
-            r = self.session.get(link)
-            with open(fname, "w") as fd:
-                fd.write(r.text)
+            if fname:
+                self.files.append(fname)
+                r = self.session.get(link)
+                with open(fname, "w") as fd:
+                    fd.write(r.text)
 
     def download_images(self):
         print("Downloading images...")
@@ -119,6 +123,9 @@ class Downloader:
             for image in images_snippet["allimages"]:
                 title = image["title"]
                 fname = self.wiki.get_local_filename(title, self.output_directory)
+                if not fname:
+                    print(f"  [skipping] {title}")
+                    continue
                 self.files.append(fname)
                 timestamp = self.wiki.parse_date(image["timestamp"])
                 if self.needs_update(fname, timestamp):

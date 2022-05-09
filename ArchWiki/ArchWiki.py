@@ -97,7 +97,7 @@ def is_ascii(text):
 
 class ArchWiki(MediaWiki):
 
-    def __init__(self, safe_filenames=False, **kwargs):
+    def __init__(self, safe_filenames=False, langs=None, **kwargs):
         """ Parameters:
             @safe_filenames: force self.get_local_filename() to return ASCII string
             + all keyword arguments of simplemediawiki.MediaWiki
@@ -107,6 +107,14 @@ class ArchWiki(MediaWiki):
         self._safe_filenames = safe_filenames
         self._namespaces = None
         self._redirects = None
+
+        if langs is not None:
+            self._language_names = {}
+            for lang, metadata in language_names.items():
+                if not set(metadata.values()).isdisjoint(langs):
+                    self._language_names[lang] = metadata
+        else:
+            self._language_names = language_names
 
     def query_continue(self, query):
         """ Generator for MediaWiki's query-continue feature.
@@ -168,15 +176,21 @@ class ArchWiki(MediaWiki):
         match = re.match("^(.+?)([ _]\(([^\(]+)\))?$", title);
         if match:
             lang = match.group(3)
-            if lang in language_names:
+            if lang in self._language_names:
                 detected_language = lang
                 pure_title = match.group(1)
+            else:
+                detected_language = None
         return pure_title, detected_language
 
     def get_local_filename(self, title, basepath):
         """ Return file name where the given page should be stored, relative to 'basepath'.
         """
         title, lang = self.detect_language(title)
+
+        if lang is None:
+            return None
+
         title, namespace = self.detect_namespace(title)
 
         # be safe and use '_' instead of ' ' in filenames (MediaWiki style)
@@ -201,7 +215,7 @@ class ArchWiki(MediaWiki):
 
         path = pattern.format(
             base=basepath,
-            langsubtag=language_names[lang]["subtag"],
+            langsubtag=self._language_names[lang]["subtag"],
             namespace=namespace,
             title=title,
             ext="html"
