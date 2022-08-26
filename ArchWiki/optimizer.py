@@ -50,6 +50,9 @@ class Optimizer:
 
         # strip <script> tags
         lxml.etree.strip_elements(root, "script")
+        
+        # strip <header> tags
+        lxml.etree.strip_elements(root, "header")
 
     def fix_layout(self, root):
         """ fix page layout after removing some elements
