@@ -16,9 +16,10 @@ url = "https://wiki.archlinux.org/api.php"
 local_language = "English"
 language_names = {
     "العربية": {"subtag": "ar", "english": "Arabic"},
+    "Bosanski": {"subtag": "bs", "english": "Bosnian"},
     "Български": {"subtag": "bg", "english": "Bulgarian"},
     "Català": {"subtag": "ca", "english": "Catalan"},
-    "Česky": {"subtag": "cs", "english": "Czech"},
+    "Čeština": {"subtag": "cs", "english": "Czech"},
     "Dansk": {"subtag": "da", "english": "Danish"},
     "Deutsch": {"subtag": "de", "english": "German"},
     "Ελληνικά": {"subtag": "el", "english": "Greek"},
@@ -31,62 +32,32 @@ language_names = {
     "עברית": {"subtag": "he", "english": "Hebrew"},
     "Hrvatski": {"subtag": "hr", "english": "Croatian"},
     "Magyar": {"subtag": "hu", "english": "Hungarian"},
-    "Indonesia": {"subtag": "id", "english": "Indonesian"},
+    "Bahasa Indonesia": {"subtag": "id", "english": "Indonesian"},
     "Italiano": {"subtag": "it", "english": "Italian"},
     "日本語": {"subtag": "ja", "english": "Japanese"},
     "한국어": {"subtag": "ko", "english": "Korean"},
-    "Lietuviškai": {"subtag": "lt", "english": "Lithuanian"},
+    "Lietuvių": {"subtag": "lt", "english": "Lithuanian"},
     "Norsk Bokmål": {"subtag": "nb", "english": "Norwegian (Bokmål)"},
     "Nederlands": {"subtag": "nl", "english": "Dutch"},
     "Polski": {"subtag": "pl", "english": "Polish"},
     "Português": {"subtag": "pt", "english": "Portuguese"},
     "Română": {"subtag": "ro", "english": "Romanian"},
     "Русский": {"subtag": "ru", "english": "Russian"},
-    "Slovenský": {"subtag": "sk", "english": "Slovak"},
+    "Slovenčina": {"subtag": "sk", "english": "Slovak"},
     "Српски": {"subtag": "sr", "english": "Serbian"},
     "Svenska": {"subtag": "sv", "english": "Swedish"},
     "ไทย": {"subtag": "th", "english": "Thai"},
     "Türkçe": {"subtag": "tr", "english": "Turkish"},
     "Українська": {"subtag": "uk", "english": "Ukrainian"},
     "Tiếng Việt": {"subtag": "vi", "english": "Vietnamese"},
-    "简体中文": {"subtag": "zh-CN", "english": "Chinese (Simplified)"},
-    "正體中文": {"subtag": "zh-TW", "english": "Chinese (Traditional)"}
+    "粵語": {"subtag": "yue", "english": "Cantonese"},
+    "简体中文": {"subtag": "zh-hans", "english": "Chinese (Simplified)"},
+    "正體中文": {"subtag": "zh-hant", "english": "Chinese (Traditional)"}
 }
-local_categories = [
-    "العربية",
-    "Български",
-    "Català",
-    "Česky",
-    "Dansk",
-    "Ελληνικά",
-    "English",
-    "Esperanto",
-    "Español",
-    "Suomi",
-    "עברית",
-    "Hrvatski",
-    "Magyar",
-    "Indonesia",
-    "Italiano",
-    "日本語",
-    "한국어",
-    "Lietuviškai",
-    "Norsk Bokmål",
-    "Nederlands",
-    "Polski",
-    "Português",
-    "Русский",
-    "Slovenský",
-    "Српски",
-    "ไทย",
-    "Українська",
-    "简体中文",
-    "正體中文"
-]
-interlanguage_external = ["de", "fa", "fi", "fr", "ro", "sv", "tr"]
-interlanguage_internal = ["ar", "bg", "cs", "da", "el", "en", "es", "he", "hr",
-                          "hu", "id", "it", "ja", "ko", "lt", "nl", "pl", "pt",
-                          "ru", "sk", "sr", "th", "uk", "zh-cn", "zh-tw"]
+interlanguage_external = ["de", "fa", "ja", "sv"]
+interlanguage_internal = ["ar", "bs", "bg", "cs", "da", "el", "en", "es", "fi", "fr",
+                          "he", "hr", "hu", "id", "it", "ko", "lt", "nl", "pl", "pt",
+                          "ru", "sk", "sr", "th", "tr", "uk", "zh-hans", "zh-hant"]
 
 def is_ascii(text):
     try:
