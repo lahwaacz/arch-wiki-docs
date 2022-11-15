@@ -139,20 +139,49 @@ class ArchWiki(MediaWiki):
                 pure_title = match.group(3)
         return pure_title, detected_namespace
 
-    def detect_language(self, title):
-        """ Detect language of a given title.
+    def detect_language(self, title, *, strip_all_subpage_parts=True):
         """
-        pure_title = title
-        detected_language = local_language
-        match = re.match("^(.+?)([ _]\(([^\(]+)\))?$", title);
+        Detect language of a given title. The matching is case-sensitive and spaces are
+        treated the same way as underscores.
+
+        :param title: page title to work with
+        :returns: a ``(pure, lang)`` tuple, where ``pure`` is the pure page title without
+            the language suffix and ``lang`` is the detected language in long, localized form
+        """
+        title_regex = r"(?P<pure>.*?)[ _]\((?P<lang>[^\(\)]+)\)"
+        pure_suffix = ""
+        # matches "Page name/Subpage (Language)"
+        match = re.fullmatch(title_regex, title)
+        # matches "Page name (Language)/Subpage"
+        if not match and "/" in title:
+            base, pure_suffix = title.split("/", maxsplit=1)
+            pure_suffix = "/" + pure_suffix
+            match = re.fullmatch(title_regex, base)
+        # matches "Category:Language"
+        if not match:
+            match = re.fullmatch(r"(?P<pure>[Cc]ategory[ _]?\:[ _]?(?P<lang>[^\(\)]+))", title)
         if match:
-            lang = match.group(3)
+            pure = match.group("pure")
+            lang = match.group("lang")
             if lang in self._language_names:
-                detected_language = lang
-                pure_title = match.group(1)
-            else:
-                detected_language = None
-        return pure_title, detected_language
+                # strip "(Language)" from all subpage components to handle cases like
+                # "Page name (Language)/Subpage (Language)"
+                if strip_all_subpage_parts is True and "/" in pure:
+                    parts = pure.split("/")
+                    new_parts = []
+                    for p in parts:
+                        match = re.fullmatch(title_regex, p)
+                        if match:
+                            part_lang = match.group("lang")
+                            if part_lang == lang:
+                                new_parts.append(match.group("pure"))
+                            else:
+                                new_parts.append(p)
+                        else:
+                            new_parts.append(p)
+                    pure = "/".join(new_parts)
+                return pure + pure_suffix, lang
+        return title, local_language
 
     def get_local_filename(self, title, basepath):
         """ Return file name where the given page should be stored, relative to 'basepath'.
