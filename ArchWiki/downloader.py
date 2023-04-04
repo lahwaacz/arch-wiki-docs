@@ -4,6 +4,7 @@ import os
 import datetime
 
 import requests
+from ArchWiki.ArchWiki import ArchWiki, language_names
 from requests.packages.urllib3.util.retry import Retry
 
 class Downloader:
@@ -70,6 +71,21 @@ class Downloader:
             return True
         return False
 
+    def check_language(self, fname):
+        """ check if the language in the fname path is in the list of desired languages
+        """
+        if not fname:
+            return False
+        
+        if language_names == self.wiki._language_names:
+            return True
+
+        flang = fname.split(os.sep)[1]
+        for lang in self.wiki._language_names:
+            if flang in self.wiki._language_names[lang]["subtag"]:
+                return True
+        return False
+
     def process_namespace(self, namespace):
         """ walk all pages in given namespace, download if necessary
         """
@@ -82,7 +98,7 @@ class Downloader:
             for page in sorted(pages_snippet["pages"].values(), key=lambda d: d["title"]):
                 title = page["title"]
                 fname = self.wiki.get_local_filename(title, self.output_directory)
-                if not fname:
+                if not self.check_language(fname):
                     print(f"  [skipping] {title}")
                     continue
                 self.files.append(fname)
