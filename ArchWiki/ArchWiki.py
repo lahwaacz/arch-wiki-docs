@@ -163,7 +163,7 @@ class ArchWiki(MediaWiki):
         if match:
             pure = match.group("pure")
             lang = match.group("lang")
-            if lang in self._language_names:
+            if lang in language_names:
                 # strip "(Language)" from all subpage components to handle cases like
                 # "Page name (Language)/Subpage (Language)"
                 if strip_all_subpage_parts is True and "/" in pure:
@@ -215,7 +215,7 @@ class ArchWiki(MediaWiki):
 
         path = pattern.format(
             base=basepath,
-            langsubtag=self._language_names[lang]["subtag"],
+            langsubtag=language_names[lang]["subtag"],
             namespace=namespace,
             title=title,
             ext="html"
