@@ -98,6 +98,9 @@ class Optimizer:
                     if match.group(2):
                         fragment = match.group(2)
                     href = self.wiki.get_local_filename(title, relbase)
+                    # get_local_filename returns None for skipped pages
+                    if href is None:
+                        continue
                     if fragment:
                         href += "#" + fragment
                     a.set("href", href)
