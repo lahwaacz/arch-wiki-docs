@@ -3,6 +3,7 @@
 import datetime
 import argparse
 import sys
+import os
 
 from simplemediawiki import build_user_agent
 
@@ -41,6 +42,17 @@ if __name__ == "__main__":
         downloader.process_namespace(ns)
 
     downloader.download_images()
+
+    for f in os.listdir(args.output_directory):
+        lang_dir = os.path.join(args.output_directory, f)
+        if os.path.isdir(lang_dir):
+            main_page = os.path.join(lang_dir, "Main_page.html")
+            index_html = os.path.join(lang_dir, "index.html")
+            if os.path.exists(main_page) and not os.path.exists(index_html):
+                print("Symlink", index_html, "->", main_page)
+                os.symlink("Main_page.html", index_html)
+            else:
+                print(main_page, "exists, skipping")
 
     if args.clean:
         downloader.clean_output_directory()
