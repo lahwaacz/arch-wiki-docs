@@ -42,7 +42,7 @@ class Optimizer:
         """ remove elements useless in offline browsing
         """
 
-        for e in root.cssselect("#archnavbar, #mw-page-base, #mw-head-base, #mw-navigation"):
+        for e in root.cssselect("#archnavbar, #mw-navigation, header.mw-header, .vector-sitenotice-container, .vector-page-toolbar"):
             e.getparent().remove(e)
 
         # strip comments (including IE 6/7 fixes, which are useless for an Arch package)
@@ -50,9 +50,6 @@ class Optimizer:
 
         # strip <script> tags
         lxml.etree.strip_elements(root, "script")
-        
-        # strip <header> tags
-        lxml.etree.strip_elements(root, "header")
 
     def fix_layout(self, root):
         """ fix page layout after removing some elements
@@ -85,9 +82,10 @@ class Optimizer:
             href = a.get("href")
             if href is not None:
                 href = urllib.parse.unquote(href)
-                match = re.match("^/title/(.+?)(?:#(.+))?$", str(href))
+                # matching full URL is necessary for interlanguage links
+                match = re.match("^(https://wiki.archlinux.org)?/title/(?P<title>.+?)(?:#(?P<fragment>.+))?$", str(href))
                 if match:
-                    title = self.wiki.resolve_redirect(match.group(1))
+                    title = self.wiki.resolve_redirect(match.group("title"))
                     try:
                         title, fragment = title.split("#", maxsplit=1)
                         # FIXME has to be dot-encoded
@@ -95,8 +93,8 @@ class Optimizer:
                     except ValueError:
                         fragment = ""
                     # explicit fragment overrides the redirect
-                    if match.group(2):
-                        fragment = match.group(2)
+                    if match.group("fragment"):
+                        fragment = match.group("fragment")
                     href = self.wiki.get_local_filename(title, relbase)
                     # get_local_filename returns None for skipped pages
                     if href is None:

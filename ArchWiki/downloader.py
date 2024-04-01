@@ -23,12 +23,11 @@ class Downloader:
         "list": "allimages",
         "ailimit": "max",
         "aiprop": "url|timestamp",
-        "aimaxsize": "10000",
         "continue": "",
     }
 
     css_links = {
-        "https://wiki.archlinux.org/load.php?debug=false&lang=en&modules=mediawiki.legacy.commonPrint,shared|mediawiki.sectionAnchor|mediawiki.skinning.interface|skins.vector.styles|skins.vector.styles.responsive|zzz.ext.archLinux.styles&only=styles&skin=vector": "ArchWikiOffline.css",
+        "https://wiki.archlinux.org/load.php?lang=en&modules=site.styles|skins.vector.icons,styles|zzz.ext.archLinux.styles&only=styles&skin=vector-2022": "ArchWikiOffline.css",
     }
 
     def __init__(self, wiki, output_directory, epoch, *, optimizer=None):
