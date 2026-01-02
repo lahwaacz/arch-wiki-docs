@@ -1,0 +1,14 @@
+[project]
+name = "arch-wiki-docs"
+version = "0.3"
+description = "A script to download pages from Arch Wiki for offline browsing"
+requires-python = ">=3.12"
+dependencies = [
+    "cssselect",
+    "lxml",
+    "wiki-scripts @ git+https://github.com/lahwaacz/wiki-scripts.git",
+]
+
+[project.urls]
+Homepage = "https://github.com/lahwaacz/arch-wiki-docs"
+Issues = "https://github.com/lahwaacz/arch-wiki-docs/issues"

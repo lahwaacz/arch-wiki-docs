@@ -1,45 +1,33 @@
-#! /usr/bin/env python3
-
 import os
 import datetime
 
-import requests
-from requests.packages.urllib3.util.retry import Retry
+from ws.client.api import API
+
+from .optimizer import Optimizer
+
 
 class Downloader:
-    query_allpages = {
-        "action": "query",
-        "generator": "allpages",
-        "gaplimit": "max",
-        "gapfilterredir": "nonredirects",
-        "gapnamespace": "0",
-        "prop": "info",
-        "inprop": "url",
-        "continue": "",
-    }
-
-    query_allimages = {
-        "action": "query",
-        "list": "allimages",
-        "ailimit": "max",
-        "aiprop": "url|timestamp",
-        "continue": "",
-    }
-
     css_links = {
         "https://wiki.archlinux.org/load.php?lang=en&modules=site.styles|skins.vector.icons,styles|zzz.ext.archLinux.styles&only=styles&skin=vector-2022": "ArchWikiOffline.css",
     }
 
-    def __init__(self, wiki, output_directory, epoch, *, optimizer=None):
-        """ Parameters:
-            @wiki:          ArchWiki instance to work with
-            @output_directory:  where to store the downloaded files
-            @epoch:         force update of every file older than this date (must be instance
+    def __init__(
+        self,
+        api: API,
+        output_directory: str,
+        epoch: datetime.datetime,
+        optimizer: Optimizer,
+    ):
+        """
+        Parameters:
+        @api:               API object for ArchWiki
+        @output_directory:  where to store the downloaded files
+        @epoch:             force update of every file older than this date (must be instance
                             of 'datetime')
-            @optimizer:     callback function for HTML post-processing
+        @optimizer:         Optimizer instance for HTML post-processing
         """
 
-        self.wiki = wiki
+        self.api = api
         self.output_directory = output_directory
         self.epoch = epoch
         self.optimizer = optimizer
@@ -51,93 +39,98 @@ class Downloader:
         # list of valid files
         self.files = []
 
-        self.session = requests.Session()
-        # granular control over requests' retries: https://stackoverflow.com/a/35504626
-        retries = Retry(total=3, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
-        adapter = requests.adapters.HTTPAdapter(max_retries=retries)
-        self.session.mount("https://", adapter)
-        self.session.mount("http://", adapter)
-
-    def needs_update(self, fname, timestamp):
-        """ determine if it is necessary to download a page
+    def needs_update(self, fname: str, timestamp: datetime.datetime) -> bool:
         """
-
+        Determine if it is necessary to download a page.
+        """
         if not os.path.exists(fname):
             return True
-        local = datetime.datetime.utcfromtimestamp(os.path.getmtime(fname))
+        local = datetime.datetime.fromtimestamp(
+            os.path.getmtime(fname), tz=datetime.UTC
+        )
         if local < timestamp or local < self.epoch:
             return True
         return False
 
-    def process_namespace(self, namespace):
-        """ walk all pages in given namespace, download if necessary
+    def process_namespace(self, namespace: str) -> None:
         """
-
+        Enumerate all pages in given namespace, download if necessary
+        """
         print(f"Processing namespace {namespace}...")
 
-        query = self.query_allpages.copy()
-        query["gapnamespace"] = namespace
-        for pages_snippet in self.wiki.query_continue(query):
-            for page in sorted(pages_snippet["pages"].values(), key=lambda d: d["title"]):
-                title = page["title"]
-                fname = self.wiki.get_local_filename(title, self.output_directory)
-                if not fname:
-                    print(f"  [skipping] {title}")
-                    continue
-                self.files.append(fname)
-                timestamp = self.wiki.parse_date(page["touched"])
-                if self.needs_update(fname, timestamp):
-                    print(f"  [downloading] {title}")
-                    fullurl = page["fullurl"]
+        allpages = self.api.generator(
+            generator="allpages",
+            gaplimit="max",
+            gapfilterredir="nonredirects",
+            gapnamespace=namespace,
+            prop="info",
+            inprop="url",
+        )
+        for page in allpages:
+            title = page["title"]
+            fname = self.optimizer.get_local_filename(title, self.output_directory)
+            if not fname:
+                print(f"  [skipping] {title}")
+                continue
+            self.files.append(fname)
+            timestamp = page["touched"]
+            if self.needs_update(fname, timestamp):
+                print(f"  [downloading] {title}")
+                fullurl = page["fullurl"]
 
-                    r = self.session.get(fullurl)
-                    if self.optimizer is not None:
-                        text = self.optimizer.optimize(fname, r.text)
-                    else:
-                        text = r.text
-
-                    # ensure that target directory exists (necessary for subpages)
-                    os.makedirs(os.path.dirname(fname), exist_ok=True)
-
-                    with open(fname, "w") as fd:
-                        fd.write(text)
+                r = self.api.session.get(fullurl)
+                r.raise_for_status()
+                if self.optimizer is not None:
+                    text = self.optimizer.optimize(fname, r.text)
                 else:
-                    print(f"  [up-to-date]  {title}")
+                    text = r.text
 
-    def download_css(self):
+                # ensure that target directory exists (necessary for subpages)
+                os.makedirs(os.path.dirname(fname), exist_ok=True)
+
+                with open(fname, "w") as fd:
+                    fd.write(text)
+            else:
+                print(f"  [up-to-date]  {title}")
+
+    def download_css(self) -> None:
         print("Downloading CSS...")
         for link, dest in self.css_links.items():
             print(" ", dest)
             fname = os.path.join(self.output_directory, dest)
             if fname:
                 self.files.append(fname)
-                r = self.session.get(link)
+                r = self.api.session.get(link)
+                r.raise_for_status()
                 with open(fname, "w") as fd:
                     fd.write(r.text)
 
-    def download_images(self):
+    def download_images(self) -> None:
         print("Downloading images...")
-        query = self.query_allimages.copy()
-        for images_snippet in self.wiki.query_continue(query):
-            for image in images_snippet["allimages"]:
-                title = image["title"]
-                fname = self.wiki.get_local_filename(title, self.output_directory)
-                if not fname:
-                    print(f"  [skipping] {title}")
-                    continue
-                self.files.append(fname)
-                timestamp = self.wiki.parse_date(image["timestamp"])
-                if self.needs_update(fname, timestamp):
-                    print(f"  [downloading] {title}")
-                    r = self.session.get(image["url"])
-                    with open(fname, "wb") as fd:
-                        fd.write(r.content)
-                else:
-                    print(f"  [up-to-date]  {title}")
+        allimages = self.api.list(
+            list="allimages", ailimit="max", aiprop="url|timestamp"
+        )
+        for image in allimages:
+            title = image["title"]
+            fname = self.optimizer.get_local_filename(title, self.output_directory)
+            if not fname:
+                print(f"  [skipping] {title}")
+                continue
+            self.files.append(fname)
+            timestamp = image["timestamp"]
+            if self.needs_update(fname, timestamp):
+                print(f"  [downloading] {title}")
+                r = self.api.session.get(image["url"])
+                r.raise_for_status()
+                with open(fname, "wb") as fd:
+                    fd.write(r.content)
+            else:
+                print(f"  [up-to-date]  {title}")
 
-    def clean_output_directory(self):
-        """ Walk output_directory and delete all files not found on the wiki.
-            Should be run _after_ downloading, otherwise all files will be deleted!
+    def clean_output_directory(self) -> None:
+        """
+        Walk output_directory and delete all files not found on the wiki.
+        Should be run _after_ downloading, otherwise all files will be deleted!
         """
 
         print("Deleting unwanted files (deleted/moved on the wiki)...")

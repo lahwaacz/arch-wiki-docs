@@ -1,2 +1,8 @@
-__pycache__
-wiki
+__pycache__/
+build/
+dist/
+.venv/
+*.egg-info/
+
+wiki/
+*.cookie
